@@ -42,12 +42,12 @@ const featuredProducts = [
     inStock: true,
   },
   {
-    id: "helmet1",
-    name: "Ferrari F1 Driver Helmet",
-    price: 89.99,
-    image: "/helmets/helmet.png?height=300&width=300",
+    id: "helmet5",
+    name: "Carlos Sainz Miami 2024 Helmet",
+    price: 129.99,
+    image: "/helmets/sainzs/2024/miami/1.png?height=300&width=300",
     category: "helmets",
-    inStock: false,
+    inStock: true,
   },
   {
     id: "car2",

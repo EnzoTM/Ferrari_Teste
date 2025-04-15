@@ -313,7 +313,7 @@ const products = {
       "/helmets/sainzs/2024/miami/3.png??height=500&width=500",
     ],
     category: "helmets",
-    inStock: false,
+    inStock: true,
     hasSound: false,
   },
 }
