@@ -11,15 +11,15 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 
 const carouselImages = [
   {
-    src: "/placeholder.svg?height=600&width=1200",
+    src: "/slider/1.png?height=600&width=1200",
     alt: "Ferrari Showcase 1",
   },
   {
-    src: "/placeholder.svg?height=600&width=1200",
+    src: "/slider/2.png?height=600&width=1200",
     alt: "Ferrari Showcase 2",
   },
   {
-    src: "/placeholder.svg?height=600&width=1200",
+    src: "/slider/3.png?height=600&width=1200",
     alt: "Ferrari Showcase 3",
   },
 ]
@@ -29,7 +29,7 @@ const featuredProducts = [
     id: "car1",
     name: "Ferrari SF90 Stradale",
     price: 129.99,
-    image: "/placeholder.svg?height=300&width=300",
+    image: "/cars/sf90/1.png?height=300&width=300",
     category: "cars",
     inStock: true,
   },
@@ -37,7 +37,7 @@ const featuredProducts = [
     id: "f1-1",
     name: "Ferrari F1-75 Charles Leclerc",
     price: 149.99,
-    image: "/placeholder.svg?height=300&width=300",
+    image: "/f1/f1.png?height=300&width=300",
     category: "formula1",
     inStock: true,
   },
@@ -45,7 +45,7 @@ const featuredProducts = [
     id: "helmet1",
     name: "Ferrari F1 Driver Helmet",
     price: 89.99,
-    image: "/placeholder.svg?height=300&width=300",
+    image: "/helmets/helmet.png?height=300&width=300",
     category: "helmets",
     inStock: false,
   },
@@ -53,7 +53,7 @@ const featuredProducts = [
     id: "car2",
     name: "Ferrari 488 GTB",
     price: 119.99,
-    image: "/placeholder.svg?height=300&width=300",
+    image: "/cars/488/1.png?height=300&width=300",
     category: "cars",
     inStock: true,
   },
@@ -138,7 +138,7 @@ export default function Home() {
               <Card className="overflow-hidden transition-all hover:shadow-lg">
                 <div className="aspect-video relative">
                   <Image
-                    src="/placeholder.svg?height=200&width=400"
+                    src="/cars/sf90/1.png?height=200&width=400"
                     alt="Car Miniatures"
                     fill
                     className="object-cover"
@@ -158,7 +158,7 @@ export default function Home() {
               <Card className="overflow-hidden transition-all hover:shadow-lg">
                 <div className="aspect-video relative">
                   <Image
-                    src="/placeholder.svg?height=200&width=400"
+                    src="/f1/f1.png?height=200&width=400"
                     alt="Formula 1 Miniatures"
                     fill
                     className="object-cover"
@@ -178,7 +178,7 @@ export default function Home() {
               <Card className="overflow-hidden transition-all hover:shadow-lg">
                 <div className="aspect-video relative">
                   <Image
-                    src="/placeholder.svg?height=200&width=400"
+                    src="/helmets/helmet.png?height=200&width=400"
                     alt="Ferrari Helmets"
                     fill
                     className="object-cover"

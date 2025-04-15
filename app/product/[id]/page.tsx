@@ -20,9 +20,9 @@ const products = {
     description:
       "The Ferrari SF90 Stradale is Ferrari's first series production PHEV (Plug-in Hybrid Electric Vehicle). This miniature is a perfect 1:18 scale replica with incredible attention to detail.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/cars/sf90/1.png?height=500&width=500",
+      "/cars/sf90/2.png?height=500&width=500",
+      "/cars/sf90/3.png?height=500&width=500",
     ],
     category: "cars",
     inStock: true,
@@ -36,9 +36,9 @@ const products = {
     description:
       "The Ferrari 488 GTB is a mid-engine sports car produced by the Italian automobile manufacturer Ferrari. This 1:18 scale model captures every detail of this iconic vehicle.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/cars/488/1.png?height=500&width=500",
+      "/cars/488/2.png?height=500&width=500",
+      "/cars/488/3.png?height=500&width=500",
     ],
     category: "cars",
     inStock: true,
@@ -52,9 +52,9 @@ const products = {
     description:
       "The Ferrari F8 Tributo is the successor to the 488 GTB and was unveiled at the 2019 Geneva Motor Show. This detailed miniature captures the essence of this powerful Ferrari model.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/cars/f8/1.png?height=500&width=500",
+      "/cars/f8/2.png?height=500&width=500",
+      "/cars/f8/3.png?height=500&width=500",
     ],
     category: "cars",
     inStock: false,
@@ -68,9 +68,9 @@ const products = {
     description:
       "The Ferrari Roma is a grand touring sports car produced by Ferrari. This miniature perfectly replicates the sleek and elegant design of the full-size vehicle.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/cars/roma/1.png?height=500&width=500",
+      "/cars/roma/2.png?height=500&width=500",
+      "/cars/roma/3.png?height=500&width=500",
     ],
     category: "cars",
     inStock: true,
@@ -84,9 +84,9 @@ const products = {
     description:
       "The Ferrari 812 Superfast is a front mid-engine, rear-wheel-drive grand tourer produced by Ferrari. This miniature captures the aggressive styling and powerful presence of the original.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/cars/812/1.png?height=500&width=500",
+      "/cars/812/2.png?height=500&width=500",
+      "/cars/812/3.png?height=500&width=500",
     ],
     category: "cars",
     inStock: true,
@@ -100,9 +100,9 @@ const products = {
     description:
       "The Ferrari Portofino is a grand touring sports car produced by Ferrari. This miniature model showcases the convertible design and elegant styling of the original vehicle.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/cars/portofino/1.png?height=500&width=500",
+      "/cars/portofino/2.png?height=500&width=500",
+      "/cars/portofino/3.png?height=500&width=500",
     ],
     category: "cars",
     inStock: true,
@@ -116,9 +116,9 @@ const products = {
     description:
       "The Ferrari Monza SP1 is a limited production single-seat sports car produced by Ferrari. This detailed miniature captures the unique design and exclusivity of this special model.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/cars/monza_sp1/1.png?height=500&width=500",
+      "/cars/monza_sp1/2.png?height=500&width=500",
+      "/cars/monza_sp1/3.png?height=500&width=500",
     ],
     category: "cars",
     inStock: false,
@@ -132,9 +132,9 @@ const products = {
     description:
       "The Ferrari LaFerrari is a limited production hybrid sports car produced by Ferrari. This miniature model captures the revolutionary design and technology of this flagship Ferrari.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/cars/laferrari/1.png?height=500&width=500",
+      "/cars/laferrari/2.png?height=500&width=500",
+      "/cars/laferrari/3.png?height=500&width=500",
     ],
     category: "cars",
     inStock: true,
@@ -448,7 +448,7 @@ export default function ProductPage() {
                 src={image || "/placeholder.svg"}
                 alt={`${product.name} - Image ${index + 1}`}
                 fill
-                className="object-contain"
+                className="object-cover"
               />
             </div>
           ))}
