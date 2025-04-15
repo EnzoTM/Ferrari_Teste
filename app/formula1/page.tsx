@@ -25,9 +25,9 @@ const products = [
   },
   {
     id: "f1-3",
-    name: "Ferrari SF21 2021 Season",
+    name: "Ferrari 500 F2",
     price: 139.99,
-    image: "/f1/SF21_1.png?height=300&width=300",
+    image: "/f1/F500_1.png?height=300&width=300",
     category: "formula1",
     inStock: false,
   },
@@ -49,9 +49,9 @@ const products = [
   },
   {
     id: "f1-6",
-    name: "Ferrari F1-75 steering wheel",
+    name: "Ferrari SF-24 Carlos Sainz Australian",
     price: 199.99,
-    image: "/f1/F1-75_wheel_1.png?height=300&width=300",
+    image: "/f1/SF24S_1.png?height=300&width=300",
     category: "formula1",
     inStock: false,
   },

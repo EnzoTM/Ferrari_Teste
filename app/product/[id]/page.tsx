@@ -177,14 +177,14 @@ const products = {
   },
   "f1-3": {
     id: "f1-3",
-    name: "Ferrari SF21 2021 Season",
+    name: "Ferrari 500 F2",
     price: 139.99,
     description:
-      "The Ferrari SF21 is the car used by Scuderia Ferrari in the 2021 Formula One World Championship. This detailed miniature captures the unique livery and technical features of this F1 car.",
+      "Ferrari 500 F2 1:1.8 scale replica",
     images: [
-      "/f1/SF21_1.png?height=500&width=500",
-      "/f1/SF21_2.png?height=500&width=500",
-      "/f1/SF21_3.png?height=500&width=500",
+      "/f1/F500_1.png?height=500&width=500",
+      "/f1/F500_2.png?height=500&width=500",
+      "/f1/F500_3.png?height=500&width=500",
     ],
     category: "formula1",
     inStock: false,
@@ -209,7 +209,7 @@ const products = {
   },
   "f1-5": {
     id: "f1-5",
-    name: "Ferrari SF-24 Charles Leclerc Australian GP 2024 model",
+    name: "Ferrari SF-24 Charles Leclerc",
     price: 119.99,
     description:
       "The Ferrari SF24",
@@ -225,14 +225,14 @@ const products = {
   },
   "f1-6": {
     id: "f1-6",
-    name: "Ferrari F1-75 steering wheel",
-    price: 199.99,
+    name: "Ferrari SF-24 Carlos Sainz Australian",
+    price: 119.99,
     description:
-      "Ferrari F1-75 steering wheel",
+      "Ferrari SF-24 Carlos Sainz Australian GP 2024 model, scale 1:8",
     images: [
-      "/f1/F1-75_wheel_1.png?height=500&width=500",
-      "/f1/F1-75_wheel_2.png?height=500&width=500",
-      "/f1/F1-75_wheel_3.png?height=500&width=500",
+      "/f1/SF24S_1.png?height=500&width=500",
+      "/f1/SF24S_2.png?height=500&width=500",
+      "/f1/SF24S_3.png?height=500&width=500",
     ],
     category: "formula1",
     inStock: false,
