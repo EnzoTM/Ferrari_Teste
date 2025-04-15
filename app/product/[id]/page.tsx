@@ -248,9 +248,9 @@ const products = {
     description:
       "This 1:2 scale replica of Charles Leclerc's 2023 helmet features his distinctive design and Ferrari branding. Perfect for collectors and F1 fans.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/helmets/charles/2023/1.png?height=500&width=500",
+      "/helmets/charles/2023/2.png??height=500&width=500",
+      "/helmets/charles/2023/3.png??height=500&width=500",
     ],
     category: "helmets",
     inStock: true,
@@ -263,9 +263,9 @@ const products = {
     description:
       "This 1:2 scale replica of Carlos Sainz's 2023 helmet showcases his unique design and Ferrari team colors. A must-have for any Ferrari collection.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/helmets/sainzs/2023/1.jpeg?height=500&width=500",
+      "/helmets/sainzs/2023/2.jpeg?height=500&width=500",
+      "/helmets/sainzs/2023/3.jpeg?height=500&width=500",
     ],
     category: "helmets",
     inStock: true,
@@ -273,14 +273,14 @@ const products = {
   },
   helmet3: {
     id: "helmet3",
-    name: "Sebastian Vettel Ferrari Helmet",
+    name: "Charles Leclerc 2024 Helmet",
     price: 79.99,
     description:
-      "This 1:2 scale replica of Sebastian Vettel's Ferrari helmet from his time with the team features his iconic design. A great collectible for F1 enthusiasts.",
+      "This 1:1 scale replica of Charles Leclerc's 2024 helmet. A great collectible for F1 enthusiasts.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/helmets/charles/2024/1.png?height=500&width=500",
+      "/helmets/charles/2024/2.png??height=500&width=500",
+      "/helmets/charles/2024/3.png??height=500&width=500",
     ],
     category: "helmets",
     inStock: false,
@@ -288,14 +288,14 @@ const products = {
   },
   helmet4: {
     id: "helmet4",
-    name: "Kimi Räikkönen Ferrari Helmet",
+    name: "Carlos Sainz 2024 Helmet",
     price: 79.99,
     description:
-      "This 1:2 scale replica of Kimi Räikkönen's Ferrari helmet captures the design used during his second stint with the team. A perfect addition to any Ferrari collection.",
+      "This 1:1 scale replica of Carlos Sainz's 2024 helmet. A perfect addition to any Ferrari collection.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/helmets/sainzs/2024/1.png?height=500&width=500",
+      "/helmets/sainzs/2024/2.png??height=500&width=500",
+      "/helmets/sainzs/2024/3.png??height=500&width=500",
     ],
     category: "helmets",
     inStock: true,
@@ -303,14 +303,14 @@ const products = {
   },
   helmet5: {
     id: "helmet5",
-    name: "Michael Schumacher Ferrari Helmet",
+    name: "Carlos Sainz Miami 2024 Helmet",
     price: 129.99,
     description:
-      "This 1:2 scale replica of Michael Schumacher's iconic Ferrari helmet from his championship years is a premium collector's item with exceptional detail and quality.",
+      "This 1:1 scale replica of Carlos Sainz's 2024 Miami Special Edition helmet",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/helmets/sainzs/2024/miami/1.png?height=500&width=500",
+      "/helmets/sainzs/2024/miami/2.png??height=500&width=500",
+      "/helmets/sainzs/2024/miami/3.png??height=500&width=500",
     ],
     category: "helmets",
     inStock: false,
