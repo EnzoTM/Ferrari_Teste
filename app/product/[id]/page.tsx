@@ -150,9 +150,9 @@ const products = {
     description:
       "The Ferrari F1-75 is the car used by Scuderia Ferrari in the 2022 Formula One World Championship. This 1:18 scale model features Charles Leclerc's livery with exquisite details.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/f1/CharlesF1-75_1.png?height=500&width=500",
+      "/f1/CharlesF1-75_2.png?height=500&width=500",
+      "/f1/CharlesF1-75_3.png?height=500&width=500",
     ],
     category: "formula1",
     inStock: true,
@@ -166,9 +166,9 @@ const products = {
     description:
       "The Ferrari F1-75 is the car used by Scuderia Ferrari in the 2022 Formula One World Championship. This 1:18 scale model features Carlos Sainz's livery with exquisite details.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/f1/CarlosF1-75_1.jpg?height=500&width=500",
+      "/f1/CarlosF1-75_2.jpg?height=500&width=500",
+      "/f1/CarlosF1-75_3.jpg?height=500&width=500",
     ],
     category: "formula1",
     inStock: true,
@@ -182,9 +182,9 @@ const products = {
     description:
       "The Ferrari SF21 is the car used by Scuderia Ferrari in the 2021 Formula One World Championship. This detailed miniature captures the unique livery and technical features of this F1 car.",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/f1/SF21_1.png?height=500&width=500",
+      "/f1/SF21_2.png?height=500&width=500",
+      "/f1/SF21_3.png?height=500&width=500",
     ],
     category: "formula1",
     inStock: false,
@@ -193,14 +193,14 @@ const products = {
   },
   "f1-4": {
     id: "f1-4",
-    name: "Ferrari SF90 2019 Season",
+    name: "Sharknose Ferrari 156 F1",
     price: 129.99,
     description:
-      "The Ferrari SF90 is the car used by Scuderia Ferrari in the 2019 Formula One World Championship. This miniature model showcases the 90th anniversary livery used during that season.",
+      "The Ferrari ",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/f1/sharknose_1.jpg?height=500&width=500",
+      "/f1/sharknose_2.jpg?height=500&width=500",
+      "/f1/sharknose_3.jpeg?height=500&width=500",
     ],
     category: "formula1",
     inStock: true,
@@ -209,14 +209,14 @@ const products = {
   },
   "f1-5": {
     id: "f1-5",
-    name: "Ferrari SF71H 2018 Season",
+    name: "Ferrari SF-24 Charles Leclerc Australian GP 2024 model",
     price: 119.99,
     description:
-      "The Ferrari SF71H is the car used by Scuderia Ferrari in the 2018 Formula One World Championship. This detailed miniature captures the technical innovations and design of this competitive F1 car.",
+      "The Ferrari SF24",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/f1/sf24_1.png?height=500&width=500",
+      "/f1/sf24_2.png?height=500&width=500",
+      "/f1/sf24_3.png?height=500&width=500",
     ],
     category: "formula1",
     inStock: true,
@@ -225,14 +225,14 @@ const products = {
   },
   "f1-6": {
     id: "f1-6",
-    name: "Ferrari F2004 Michael Schumacher",
+    name: "Ferrari F1-75 steering wheel",
     price: 199.99,
     description:
-      "The Ferrari F2004 is one of the most successful Formula One cars ever built, driven by Michael Schumacher during his dominant 2004 season. This collector's item captures this iconic car in perfect detail.",
+      "Ferrari F1-75 steering wheel",
     images: [
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
-      "/placeholder.svg?height=500&width=500",
+      "/f1/F1-75_wheel_1.png?height=500&width=500",
+      "/f1/F1-75_wheel_2.png?height=500&width=500",
+      "/f1/F1-75_wheel_3.png?height=500&width=500",
     ],
     category: "formula1",
     inStock: false,
