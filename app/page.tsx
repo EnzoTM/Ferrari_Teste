@@ -26,10 +26,10 @@ const carouselImages = [
 
 const featuredProducts = [
   {
-    id: "car1",
-    name: "Ferrari SF90 Stradale",
-    price: 129.99,
-    image: "/cars/sf90/1.png?height=300&width=300",
+    id: "car6",
+    name: "Ferrari Portofino",
+    price: 114.99,
+    image: "/cars/portofino/1.png?height=300&width=300",
     category: "cars",
     inStock: true,
   },
