@@ -82,7 +82,7 @@ export default function Header() {
           >
             Helmets
           </Link>
-          <Link
+          {/* <Link
             href="/admin"
             className={cn(
               "text-sm font-medium transition-colors hover:text-red-600",
@@ -90,7 +90,7 @@ export default function Header() {
             )}
           >
             Admin
-          </Link>
+          </Link> */}
         </nav>
 
         <div className="flex items-center space-x-4">
