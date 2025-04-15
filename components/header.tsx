@@ -41,7 +41,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-white">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center">
-          <Image src="/placeholder.svg?height=40&width=40" alt="Ferrari Logo" width={40} height={40} className="mr-2" />
+          <Image src="/logo.png?height=40&width=40" alt="Ferrari Logo" width={70} height={70} className="mr-2" />
         </Link>
 
         {/* Desktop Navigation */}
