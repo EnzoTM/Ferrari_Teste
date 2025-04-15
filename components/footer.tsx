@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="flex flex-col items-center md:items-start">
             <Image
-              src="/placeholder.svg?height=60&width=60"
+              src="/logo.png?height=60&width=60"
               alt="Ferrari Logo"
               width={60}
               height={60}

@@ -11,15 +11,15 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 
 const carouselImages = [
   {
-    src: "/slider/1.png?height=600&width=1200",
+    src: "/slider/a.png?height=600&width=1200",
     alt: "Ferrari Showcase 1",
   },
   {
-    src: "/slider/2.png?height=600&width=1200",
+    src: "/slider/b.png?height=600&width=1200",
     alt: "Ferrari Showcase 2",
   },
   {
-    src: "/slider/3.png?height=600&width=1200",
+    src: "/slider/c.png?height=600&width=1200",
     alt: "Ferrari Showcase 3",
   },
 ]
@@ -81,7 +81,7 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Carousel */}
-      <div className="relative h-[300px] w-full overflow-hidden md:h-[400px] lg:h-[500px]">
+      <div className="relative h-[150px] w-full overflow-hidden md:h-[400px] lg:h-[750px]">
         {carouselImages.map((image, index) => (
           <div
             key={index}
