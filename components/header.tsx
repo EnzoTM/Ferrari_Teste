@@ -183,7 +183,7 @@ export default function Header() {
               <ShoppingCart className="h-5 w-5" />
               <span className="sr-only">Cart</span>
               {itemCount > 0 && (
-                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 p-0 text-[10px] text-white">
+                <Badge className="absolute -right-2 -top-2 h-5 w-5 rounded-full bg-red-600 p-0 text-[10px] text-white">
                   {itemCount}
                 </Badge>
               )}
