@@ -1,5 +1,5 @@
-const mongoose = require("../db/conn");
-const Product = require("../models/Product");
+const mongoose = require("../db/conn.js");
+const Product = require("../models/Product.js");
 const { upload } = require("../imguploadconfig/multer.js");
 
 module.exports = class ProductController {

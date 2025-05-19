@@ -1,12 +1,12 @@
-const User = require("../models/User");
+const User = require("../models/User.js");
 const multer = require("multer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 // helpers
-const createUserToken = require("../helpers/create-user-token");
-const getToken = require("../helpers/get-token");
-const getUserByToken = require("../helpers/get-user-by-token");
+const createUserToken = require("../helpers/create-user-token.js");
+const getToken = require("../helpers/get-token.js");
+const getUserByToken = require("../helpers/get-user-by-token.js");
 const { upload } = require("../helpers/image-upload.js");
 
 class UserController {
