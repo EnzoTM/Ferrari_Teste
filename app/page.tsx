@@ -61,14 +61,27 @@ const featuredProducts = [
 
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0)
+  //const [featuredProducts, setFeaturedProducts] = useState([])
+
   const isMobile = useMediaQuery("(max-width: 768px)")
 
-  useEffect(() => {
+  //useEffect for slide
+  useEffect(() => { 
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % carouselImages.length)
     }, 5000)
     return () => clearInterval(interval)
   }, [])
+
+  //useEffect to fetch featured products
+  /*useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      const response = await fetch("linkBase/products?featured=true") //dar o get para pegar os produtos
+      const AllProducts = await response.json() //passar os produtos para json
+
+      setFeaturedProducts(AllProducts)
+    }
+  }, [])*/
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % carouselImages.length)
