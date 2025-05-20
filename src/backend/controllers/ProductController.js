@@ -1,8 +1,9 @@
 const Product = require('../models/Product');
-const Category = require('../models/Category');
 const mongoose = require('mongoose');
 const getToken = require('../helpers/get-token');
 const getUserByToken = require('../helpers/get-user-by-token');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = class ProductController {
   // Criar um novo produto
@@ -19,12 +20,9 @@ module.exports = class ProductController {
         name, 
         price, 
         description, 
-        category, 
         type, 
-        tags = [], 
-        specifications = {}, 
         featured = false,
-        stock = 0
+        stock = 0,
       } = req.body;
 
       // Validações
@@ -37,23 +35,18 @@ module.exports = class ProductController {
       if (!description) {
         return res.status(422).json({ message: 'A descrição é obrigatória' });
       }
-      if (!category) {
-        return res.status(422).json({ message: 'A categoria é obrigatória' });
-      }
       if (!type) {
         return res.status(422).json({ message: 'O tipo é obrigatório' });
+      }
+      
+      if (!['car', 'helmet', 'formula1'].includes(type)) {
+        return res.status(422).json({ message: 'Tipo de produto inválido' });
       }
 
       // Verificar se o nome já existe
       const productExists = await Product.findOne({ name });
       if (productExists) {
         return res.status(422).json({ message: 'Já existe um produto com este nome' });
-      }
-
-      // Verificar se a categoria existe
-      const categoryExists = await Category.findById(category);
-      if (!categoryExists) {
-        return res.status(422).json({ message: 'Categoria não encontrada' });
       }
 
       // Obter imagens do produto
@@ -71,13 +64,11 @@ module.exports = class ProductController {
         name,
         price,
         description,
-        category,
         type,
-        tags,
         images,
-        specifications,
         featured,
-        stock
+        stock,
+        sold: 0,
       });
 
       await product.save();
@@ -94,7 +85,7 @@ module.exports = class ProductController {
   // Obter todos os produtos
   static async getAll(req, res) {
     try {
-      const products = await Product.find().sort('-createdAt').populate('category');
+      const products = await Product.find().sort('-createdAt');
       res.status(200).json({ products });
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -104,7 +95,7 @@ module.exports = class ProductController {
   // Obter produtos em destaque
   static async getFeatured(req, res) {
     try {
-      const products = await Product.find({ featured: true }).sort('-createdAt').populate('category');
+      const products = await Product.find({ featured: true }).sort('-createdAt');
       res.status(200).json({ products });
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -116,27 +107,11 @@ module.exports = class ProductController {
     try {
       const { type } = req.params;
       
-      if (!['car', 'helmet', 'merchandise', 'formula1'].includes(type)) {
+      if (!['car', 'helmet', 'formula1'].includes(type)) {
         return res.status(422).json({ message: 'Tipo de produto inválido' });
       }
 
-      const products = await Product.find({ type }).sort('-createdAt').populate('category');
-      res.status(200).json({ products });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  }
-
-  // Obter produtos por categoria
-  static async getByCategory(req, res) {
-    try {
-      const { categoryId } = req.params;
-      
-      if (!mongoose.Types.ObjectId.isValid(categoryId)) {
-        return res.status(422).json({ message: 'ID de categoria inválido' });
-      }
-
-      const products = await Product.find({ category: categoryId }).sort('-createdAt').populate('category');
+      const products = await Product.find({ type }).sort('-createdAt');
       res.status(200).json({ products });
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -152,7 +127,7 @@ module.exports = class ProductController {
         return res.status(422).json({ message: 'ID inválido' });
       }
 
-      const product = await Product.findById(id).populate('category');
+      const product = await Product.findById(id);
       
       if (!product) {
         return res.status(404).json({ message: 'Produto não encontrado' });
@@ -176,10 +151,9 @@ module.exports = class ProductController {
       const products = await Product.find({
         $or: [
           { name: { $regex: q, $options: 'i' } },
-          { description: { $regex: q, $options: 'i' } },
-          { tags: { $in: [new RegExp(q, 'i')] } }
+          { description: { $regex: q, $options: 'i' } }
         ]
-      }).sort('-createdAt').populate('category');
+      }).sort('-createdAt');
 
       res.status(200).json({ products });
     } catch (error) {
@@ -213,10 +187,7 @@ module.exports = class ProductController {
         name, 
         price, 
         description, 
-        category, 
         type, 
-        tags, 
-        specifications,
         featured,
         stock
       } = req.body;
@@ -230,20 +201,14 @@ module.exports = class ProductController {
         product.name = name;
       }
 
-      if (price) product.price = price;
+      if (price !== undefined) product.price = price;
       if (description) product.description = description;
-      
-      if (category) {
-        const categoryExists = await Category.findById(category);
-        if (!categoryExists) {
-          return res.status(422).json({ message: 'Categoria não encontrada' });
+      if (type) {
+        if (!['car', 'helmet', 'formula1'].includes(type)) {
+          return res.status(422).json({ message: 'Tipo de produto inválido' });
         }
-        product.category = category;
+        product.type = type;
       }
-      
-      if (type) product.type = type;
-      if (tags) product.tags = tags;
-      if (specifications) product.specifications = specifications;
       if (featured !== undefined) product.featured = featured;
       if (stock !== undefined) product.stock = stock;
 
@@ -292,122 +257,29 @@ module.exports = class ProductController {
         return res.status(404).json({ message: 'Imagem não encontrada' });
       }
 
-      // Remover imagem
+      // Remover imagem do array
       product.images = product.images.filter(image => image !== filename);
+
+      // Verificar se ainda há pelo menos uma imagem
+      if (product.images.length === 0) {
+        return res.status(422).json({ message: 'O produto deve ter pelo menos uma imagem' });
+      }
 
       // Salvar produto
       await product.save();
 
+      // Attempt to remove the file from the filesystem
+      try {
+        const imagePath = path.join(__dirname, '../../public/images/products', filename);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
+      } catch (error) {
+        console.error('Error removing image file:', error);
+        // Continue execution even if file removal fails
+      }
+
       res.status(200).json({ message: 'Imagem removida com sucesso', product });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  }
-
-  // Adicionar modelo ao produto
-  static async addModel(req, res) {
-    try {
-      const { id } = req.params;
-      
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(422).json({ message: 'ID inválido' });
-      }
-
-      const token = getToken(req);
-      const user = await getUserByToken(token);
-
-      if (!user || !user.admin) {
-        return res.status(401).json({ message: 'Acesso negado' });
-      }
-
-      const product = await Product.findById(id);
-      
-      if (!product) {
-        return res.status(404).json({ message: 'Produto não encontrado' });
-      }
-
-      const { size, color, quantity } = req.body;
-
-      if (!size) {
-        return res.status(422).json({ message: 'O tamanho é obrigatório' });
-      }
-      if (!color) {
-        return res.status(422).json({ message: 'A cor é obrigatória' });
-      }
-      if (!quantity) {
-        return res.status(422).json({ message: 'A quantidade é obrigatória' });
-      }
-
-      // Verificar se o modelo já existe
-      const modelExists = product.availableModels.find(
-        model => model.size === size && model.color === color
-      );
-
-      if (modelExists) {
-        return res.status(422).json({ message: 'Este modelo já existe para o produto' });
-      }
-
-      // Adicionar novo modelo
-      const newModel = {
-        _id: new mongoose.Types.ObjectId(),
-        size,
-        color,
-        quantity
-      };
-
-      product.availableModels.push(newModel);
-
-      // Atualizar estoque total
-      product.stock = product.availableModels.reduce((total, model) => total + model.quantity, 0);
-
-      await product.save();
-      res.status(200).json({ message: 'Modelo adicionado com sucesso', product });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  }
-
-  // Remover modelo do produto
-  static async removeModel(req, res) {
-    try {
-      const { id, modelId } = req.params;
-      
-      if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(modelId)) {
-        return res.status(422).json({ message: 'ID inválido' });
-      }
-
-      const token = getToken(req);
-      const user = await getUserByToken(token);
-
-      if (!user || !user.admin) {
-        return res.status(401).json({ message: 'Acesso negado' });
-      }
-
-      const product = await Product.findById(id);
-      
-      if (!product) {
-        return res.status(404).json({ message: 'Produto não encontrado' });
-      }
-
-      // Verificar se o modelo existe
-      const modelExists = product.availableModels.find(
-        model => model._id.toString() === modelId
-      );
-
-      if (!modelExists) {
-        return res.status(404).json({ message: 'Modelo não encontrado' });
-      }
-
-      // Remover modelo
-      product.availableModels = product.availableModels.filter(
-        model => model._id.toString() !== modelId
-      );
-
-      // Atualizar estoque total
-      product.stock = product.availableModels.reduce((total, model) => total + model.quantity, 0);
-
-      await product.save();
-      res.status(200).json({ message: 'Modelo removido com sucesso', product });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -435,7 +307,22 @@ module.exports = class ProductController {
         return res.status(404).json({ message: 'Produto não encontrado' });
       }
 
+      // Delete the product
       await Product.findByIdAndDelete(id);
+
+      // Attempt to remove the product images from the filesystem
+      try {
+        for (const filename of product.images) {
+          const imagePath = path.join(__dirname, '../../public/images/products', filename);
+          if (fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+          }
+        }
+      } catch (error) {
+        console.error('Error removing image files:', error);
+        // Continue execution even if file removal fails
+      }
+
       res.status(200).json({ message: 'Produto removido com sucesso' });
     } catch (error) {
       res.status(500).json({ message: error.message });

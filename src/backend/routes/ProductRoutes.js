@@ -9,7 +9,6 @@ const { imageUpload } = require('../helpers/image-upload');
 router.get('/', ProductController.getAll);
 router.get('/featured', ProductController.getFeatured);
 router.get('/type/:type', ProductController.getByType);
-router.get('/category/:categoryId', ProductController.getByCategory);
 router.get('/search', ProductController.search);
 router.get('/:id', ProductController.getById);
 
@@ -18,7 +17,5 @@ router.post('/', verifyToken, imageUpload.array('images'), ProductController.cre
 router.patch('/:id', verifyToken, imageUpload.array('images'), ProductController.update);
 router.delete('/:id', verifyToken, ProductController.delete);
 router.patch('/:id/remove-image', verifyToken, ProductController.removeImage);
-router.post('/:id/models', verifyToken, ProductController.addModel);
-router.delete('/:id/models/:modelId', verifyToken, ProductController.removeModel);
 
 module.exports = router;

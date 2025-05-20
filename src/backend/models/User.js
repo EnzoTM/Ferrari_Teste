@@ -1,66 +1,8 @@
 const mongoose = require("../db/conn");
 const { Schema } = mongoose;
-
-const Purchase = new Schema({
-  product: {
-    id: {
-      type: Schema.Types.ObjectId,
-      ref: 'Product',
-      required: true
-    },
-    name: {
-      type: String,
-      required: true
-    },
-    price: {
-      type: Number,
-      required: true
-    },
-    color: {
-      type: String
-    },
-    size: {
-      type: String
-    },
-    quantity: {
-      type: Number,
-      required: true
-    },
-    image: {
-      type: String
-    }
-  },
-}, { timestamps: true });
-
-const Address = new Schema({
-  street: {
-    type: String,
-    required: true
-  },
-  number: {
-    type: String,
-    required: true
-  },
-  complement: {
-    type: String
-  },
-  neighborhood: {
-    type: String,
-    required: true
-  },
-  city: {
-    type: String,
-    required: true
-  },
-  state: {
-    type: String,
-    required: true
-  },
-  zipCode: {
-    type: String,
-    required: true
-  }
-});
+const { AddressSchema } = require('./Address');
+const { PaymentMethodSchema } = require('./PaymentMethod');
+const { OrderSchema } = require('./Order');
 
 const UserSchema = new Schema(
   {
@@ -80,9 +22,6 @@ const UserSchema = new Schema(
       type: String,
       required: true
     },
-    image: {
-      type: String
-    },
     phone: {
       type: String,
       required: true
@@ -96,15 +35,29 @@ const UserSchema = new Schema(
       type: Boolean,
       default: false
     },
-    address: {
-      type: Address
-    },
-    cart: {
-      type: [Purchase],
+    addresses: {
+      type: [AddressSchema],
       default: []
     },
+    paymentMethods: {
+      type: [PaymentMethodSchema],
+      default: []
+    },
+    cart: [{
+      product: {
+        type: Schema.Types.ObjectId,
+        ref: 'Product',
+        required: true
+      },
+      quantity: {
+        type: Number,
+        required: true,
+        min: 1,
+        default: 1
+      },
+    }],
     orders: {
-      type: [Purchase],
+      type: [OrderSchema],
       default: []
     }
   },

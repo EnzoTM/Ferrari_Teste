@@ -20,12 +20,10 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 // Importação das rotas
 const UserRoutes = require('./routes/UserRoutes');
 const ProductRoutes = require('./routes/ProductRoutes');
-const CategoryRoutes = require('./routes/CategoryRoutes');
 
 // Definição das rotas
 app.use('/api/users', UserRoutes);
 app.use('/api/products', ProductRoutes);
-app.use('/api/categories', CategoryRoutes);
 
 // Rota para verificar se a API está funcionando
 app.get('/', (req, res) => {

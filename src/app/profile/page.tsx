@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -7,11 +6,11 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { User, MapPin, CreditCard, LogOut, ShoppingBag } from "lucide-react"
 import AccountForm from "@/components/profile/account-form"
-import AddressList from "@/components/profile/address-list"
-import PaymentMethodList from "@/components/profile/payment-method-list"
-import OrderHistory from "@/components/profile/order-history"
+import AddressesSection from "@/components/profile/addresses-section"
+import PaymentMethodsSection from "@/components/profile/payment-methods-section"
+import OrdersSection from "@/components/profile/orders-section"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWithAuth, getUserId, getUserProfile, isAuthenticated, logout } from "@/lib/api"
+import { API_URL, authFetchConfig, getUserId, getUserProfile, isAuthenticated, logout } from "@/lib/api"
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -19,7 +18,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const { toast } = useToast()
 
-  // Load real user data from API
+  // Load user data from API
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -34,48 +33,27 @@ export default function ProfilePage() {
           return
         }
 
-        // Get user data from API using the getUserProfile function
+        // Get user data from API
         try {
-          const userProfile = await getUserProfile()
-          setUserData(userProfile)
+          const response = await fetch(`${API_URL}/api/users/check`, authFetchConfig())
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch user data')
+          }
+          
+          const user = await response.json()
+          setUserData(user)
         } catch (error) {
           console.error("Error fetching user profile:", error)
           
-          // Show more specific error message
           toast({
             title: "Erro ao carregar perfil",
-            description: `Não foi possível carregar seus dados: ${error.message || "Erro desconhecido"}`,
+            description: "Não foi possível carregar seus dados. Tente novamente mais tarde.",
             variant: "destructive",
           })
           
-          // Try direct approach as fallback
-          const userId = getUserId()
-          if (userId) {
-            try {
-              // Check if API URL is defined
-              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-              
-              const response = await fetchWithAuth(`${apiUrl}/api/users/${userId}`)
-              
-              if (response.ok) {
-                const userData = await response.json()
-                // Save to localStorage for future use
-                localStorage.setItem('user', JSON.stringify(userData))
-                setUserData(userData)
-              } else {
-                throw new Error(`Failed to fetch user data: ${response.status}`)
-              }
-            } catch (fetchError) {
-              console.error("Error in direct fetch:", fetchError)
-              toast({
-                title: "Erro ao carregar dados",
-                description: "Não foi possível carregar seus dados de perfil. Tente novamente mais tarde.",
-                variant: "destructive",
-              })
-              // Redirect to login if we can't get user data after multiple attempts
-              router.push('/login')
-            }
-          }
+          // Redirect to login if we can't get user data
+          router.push('/login')
         }
       } catch (error) {
         console.error("Authentication error:", error)
@@ -152,19 +130,19 @@ export default function ProfilePage() {
         
         <TabsContent value="addresses">
           <Card className="p-6">
-            <AddressList userData={userData} />
+            <AddressesSection />
           </Card>
         </TabsContent>
         
         <TabsContent value="payment">
           <Card className="p-6">
-            <PaymentMethodList />
+            <PaymentMethodsSection />
           </Card>
         </TabsContent>
         
         <TabsContent value="orders">
           <Card className="p-6">
-            <OrderHistory userData={userData} />
+            <OrdersSection />
           </Card>
         </TabsContent>
       </Tabs>

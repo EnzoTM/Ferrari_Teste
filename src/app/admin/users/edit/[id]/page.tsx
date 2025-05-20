@@ -1,7 +1,5 @@
 "use client"
-
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,25 +8,26 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
+import { API_URL, authFetchConfig } from "@/lib/api"
 
 interface UserData {
-  id: string
-  fullName: string
+  _id: string
+  name: string
   email: string
   phone: string
-  isAdmin: boolean
+  admin: boolean
   createdAt: string
 }
 
 export default function EditUserPage() {
   const { id } = useParams()
   const [formData, setFormData] = useState({
-    fullName: "",
+    name: "",
     email: "",
     phone: "",
     password: "",
     confirmPassword: "",
-    isAdmin: false,
+    admin: false,
   })
   const [originalEmail, setOriginalEmail] = useState("")
   const [errors, setErrors] = useState({
@@ -43,29 +42,52 @@ export default function EditUserPage() {
 
   // Load user data
   useEffect(() => {
-    const users = JSON.parse(localStorage.getItem("allUsers") || "[]")
-    const user = users.find((u: UserData) => u.id === id)
+    const fetchUser = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`${API_URL}/api/users/${id}`, authFetchConfig())
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data')
+        }
+        
+        const data = await response.json()
+        const user = data.user || data
 
-    if (user) {
-      setFormData({
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        password: "",
-        confirmPassword: "",
-        isAdmin: user.isAdmin,
-      })
-      setOriginalEmail(user.email)
-    } else {
-      toast({
-        title: "User not found",
-        description: "The user you are trying to edit does not exist",
-        variant: "destructive",
-      })
-      router.push("/admin/users")
+        if (user) {
+          setFormData({
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            password: "",
+            confirmPassword: "",
+            admin: user.admin || false,
+          })
+          setOriginalEmail(user.email)
+        } else {
+          toast({
+            title: "User not found",
+            description: "The user you are trying to edit does not exist",
+            variant: "destructive",
+          })
+          router.push("/admin/users")
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load user data. Please try again.",
+          variant: "destructive",
+        })
+        router.push("/admin/users")
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    setIsLoading(false)
+    if (id) {
+      fetchUser()
+    }
   }, [id, router, toast])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,7 +101,7 @@ export default function EditUserPage() {
   }
 
   const handleSwitchChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, isAdmin: checked }))
+    setFormData((prev) => ({ ...prev, admin: checked }))
   }
 
   const validateForm = () => {
@@ -99,7 +121,6 @@ export default function EditUserPage() {
         newErrors.password = "Password must be at least 8 characters"
         valid = false
       }
-
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = "Passwords do not match"
         valid = false
@@ -110,46 +131,61 @@ export default function EditUserPage() {
     return valid
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
+    
     if (!validateForm()) {
       return
     }
 
-    // Get existing users
-    const existingUsers = JSON.parse(localStorage.getItem("allUsers") || "[]")
-
-    // Check if email already exists (but ignore the current user's email)
-    if (formData.email !== originalEmail && existingUsers.some((user: UserData) => user.email === formData.email)) {
-      setErrors((prev) => ({ ...prev, email: "This email is already in use" }))
-      return
-    }
-
-    // Update user
-    const updatedUsers = existingUsers.map((user: UserData) => {
-      if (user.id === id) {
-        return {
-          ...user,
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          isAdmin: formData.isAdmin,
-          // Only update password if a new one was provided
-          ...(formData.password && { password: formData.password }),
-        }
+    try {
+      setIsLoading(true)
+      
+      // Only include password if it was provided
+      const userData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        admin: formData.admin,
+        ...(formData.password && formData.password.length > 0 ? 
+          { password: formData.password, confirmPassword: formData.confirmPassword } : {})
       }
-      return user
-    })
 
-    localStorage.setItem("allUsers", JSON.stringify(updatedUsers))
+      const response = await fetch(`${API_URL}/api/users/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(userData)
+      })
 
-    toast({
-      title: "User updated",
-      description: `${formData.fullName}'s information has been updated`,
-    })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to update user')
+      }
 
-    router.push("/admin/users")
+      toast({
+        title: "User updated",
+        description: `${formData.name}'s information has been updated`,
+      })
+      router.push("/admin/users")
+    } catch (error: any) {
+      console.error("Error updating user:", error)
+      
+      // Handle email already exists error
+      if (error.message && error.message.includes("email")) {
+        setErrors(prev => ({ ...prev, email: "This email is already in use" }))
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update user. Please try again.",
+          variant: "destructive",
+        })
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (isLoading) {
@@ -163,7 +199,6 @@ export default function EditUserPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">Edit User</h1>
-
       <Card className="mx-auto max-w-2xl">
         <CardHeader>
           <CardTitle>User Information</CardTitle>
@@ -171,10 +206,9 @@ export default function EditUserPage() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input id="fullName" name="fullName" value={formData.fullName} onChange={handleInputChange} required />
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -187,12 +221,10 @@ export default function EditUserPage() {
               />
               {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="password">New Password (leave blank to keep current)</Label>
               <Input
@@ -204,7 +236,6 @@ export default function EditUserPage() {
               />
               {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm New Password</Label>
               <Input
@@ -216,10 +247,9 @@ export default function EditUserPage() {
               />
               {errors.confirmPassword && <p className="text-xs text-red-600">{errors.confirmPassword}</p>}
             </div>
-
             <div className="flex items-center space-x-2">
-              <Switch id="isAdmin" checked={formData.isAdmin} onCheckedChange={handleSwitchChange} />
-              <Label htmlFor="isAdmin">Admin User</Label>
+              <Switch id="admin" checked={formData.admin} onCheckedChange={handleSwitchChange} />
+              <Label htmlFor="admin">Admin User</Label>
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
