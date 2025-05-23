@@ -25,7 +25,9 @@ const PaymentMethodSchema = new Schema({
   }
 }, { timestamps: true });
 
+const PaymentMethod = mongoose.model('PaymentMethod', PaymentMethodSchema)
+
 module.exports = {
   PaymentMethodSchema,
-  PaymentMethod: mongoose.model('PaymentMethod', PaymentMethodSchema)
+  PaymentMethod
 };

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Car, Trophy, HardHatIcon as Helmet, Home, List, Users } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { isUserAdmin, isAuthenticated } from "@/lib/api"
+import { isAdmin, isAuthenticated } from "@/lib/api"
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
 
     // Check if user is admin
-    if (!isUserAdmin()) {
+    if (!isAdmin()) {
       toast({
         title: "Acesso negado",
         description: "Você não tem permissões de administrador para acessar esta área.",

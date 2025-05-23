@@ -12,7 +12,7 @@ const getUserByToken = require('../helpers/get-user-by-token');
 module.exports = class UserController {
   // Registro de usuário
   static async register(req, res) {
-    const { name, email, phone, cpf, password } = req.body;
+    const { name, email, phone, cpf, password, admin = false } = req.body;
 
     // Validações
     if (!name) {
@@ -47,19 +47,23 @@ module.exports = class UserController {
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Criar usuário
+    // Criar usuário com um carrinho vazio explicitamente definido
     const user = new User({
       name,
       email,
       phone,
       cpf,
       password: passwordHash,
+      admin,
+      cart: [], // Explicitly initialize as empty array to prevent schema issues
+      orders: [] // Explicitly initialize as empty array
     });
 
     try {
       const newUser = await user.save();
       await createUserToken(newUser, req, res);
     } catch (error) {
+      console.error("Registration error:", error);
       res.status(500).json({ message: error.message });
     }
   }

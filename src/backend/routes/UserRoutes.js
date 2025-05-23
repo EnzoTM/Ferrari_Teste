@@ -3,12 +3,16 @@ const UserController = require('../controllers/UserController');
 // Middlewares
 const verifyToken = require('../helpers/verify-token');
 const { imageUpload } = require('../helpers/image-upload');
+const { validateToken, checkAdmin } = require('../helpers/verify-token');
 
 // Rotas públicas
 router.post('/register', UserController.register);
 router.post('/login', UserController.login);
 router.get('/check', UserController.checkUser);
 router.get('/checkuser', UserController.checkUser); // For frontend compatibility
+
+// Admin user registration route - requires admin privileges
+router.post('/admin/register', validateToken, checkAdmin, UserController.register);
 
 // Single address routes
 router.get('/address', verifyToken, UserController.getAddress);

@@ -18,16 +18,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { API_URL, authFetchConfig } from "@/lib/api"
-
-interface UserData {
-  _id: string
-  name: string
-  email: string
-  phone: string
-  admin: boolean
-  createdAt: string
-}
+import { API_URL, authFetchConfig, isAdmin, isAuthenticated } from "@/lib/api"
+import { IUser } from "@/types/models"
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
@@ -39,38 +31,64 @@ const formatDate = (dateString: string) => {
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<UserData[]>([])
+  const [users, setUsers] = useState<IUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
   const { toast } = useToast()
 
-  // Load users from API
+  // Verify authentication and admin permission
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setIsLoading(true)
-        const response = await fetch(`${API_URL}/api/users`, authFetchConfig())
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch users')
-        }
-        
-        const data = await response.json()
-        setUsers(data.users || [])
-      } catch (error) {
-        console.error("Error fetching users:", error)
+    const checkAuth = async () => {
+      if (!isAuthenticated()) {
         toast({
-          title: "Error",
-          description: "Failed to load users. Please try again.",
+          title: "Authentication required",
+          description: "You must be logged in to access this page",
           variant: "destructive",
         })
-      } finally {
-        setIsLoading(false)
+        router.push('/login')
+        return
       }
-    }
 
-    fetchUsers()
-  }, [toast])
+      if (!isAdmin()) {
+        toast({
+          title: "Access denied",
+          description: "You don't have permission to access this page",
+          variant: "destructive",
+        })
+        router.push('/')
+        return
+      }
+
+      // After verifying auth and permissions, load users
+      fetchUsers()
+    }
+    
+    checkAuth()
+  }, [router, toast])
+
+  // Load users from API
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(`${API_URL}/api/users`, authFetchConfig())
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch users')
+      }
+      
+      const data = await response.json()
+      setUsers(data.users || [])
+    } catch (error) {
+      console.error("Error fetching users:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load users. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleAddUser = () => {
     router.push("/admin/users/add")
@@ -189,9 +207,9 @@ export default function UsersPage() {
 }
 
 interface UserCardProps {
-  user: UserData
-  onEdit: (userId: string) => void
-  onDelete: (userId: string) => void
+  user: IUser;
+  onEdit: (userId: string) => void;
+  onDelete: (userId: string) => void;
 }
 
 function UserCard({ user, onEdit, onDelete }: UserCardProps) {
@@ -206,14 +224,14 @@ function UserCard({ user, onEdit, onDelete }: UserCardProps) {
           <div className="space-y-1 text-sm">
             <p className="text-gray-600">{user.email}</p>
             <p className="text-gray-600">{user.phone}</p>
-            <p className="text-xs text-gray-500">Created: {formatDate(user.createdAt)}</p>
+            <p className="text-xs text-gray-500">Created: {formatDate(user.createdAt || '')}</p>
           </div>
         </div>
         <div className="flex border-t">
           <Button
             variant="ghost"
             className="flex-1 rounded-none text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-            onClick={() => onEdit(user._id)}
+            onClick={() => onEdit(user._id as string)}
           >
             <Edit className="mr-2 h-4 w-4" />
             Edit
@@ -235,7 +253,7 @@ function UserCard({ user, onEdit, onDelete }: UserCardProps) {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => onDelete(user._id)}>
+                <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => onDelete(user._id as string)}>
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>

@@ -48,32 +48,56 @@ export default function Home() {
     const fetchFeaturedProducts = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch(API_ENDPOINTS.featuredProducts)
-          .catch(error => {
-            console.error("Network error during fetch:", error);
-            throw new Error("Erro de conexão com o servidor. Verifique sua conexão de internet.");
+        
+        // Primeira tentativa: buscar do backend
+        try {
+          const response = await fetch(API_ENDPOINTS.featuredProducts, {
+            signal: AbortSignal.timeout(5000) // 5 segundos timeout para evitar espera longa
           });
+          
+          if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          if (data.products && Array.isArray(data.products)) {
+            setFeaturedProducts(data.products);
+            return; // Dados obtidos com sucesso, sair da função
+          }
+        } catch (apiError) {
+          console.error("Erro ao buscar do backend:", apiError);
+          // Continue para o fallback abaixo
+        }
 
-        if (!response) {
-          throw new Error("Não foi possível conectar ao servidor");
+        // Fallback: buscar do localStorage
+        console.log("Usando fallback de dados locais");
+        const productCategories = ['Cars', 'Formula1', 'Helmets'];
+        let allProducts: IProduct[] = [];
+        
+        productCategories.forEach(category => {
+          const storageKey = `ferrari${category}`;
+          const storedProducts = JSON.parse(localStorage.getItem(storageKey) || '[]');
+          allProducts = [...allProducts, ...storedProducts];
+        });
+        
+        // Filtrar produtos em destaque
+        const featured = allProducts.filter(p => p.featured).slice(0, 4);
+        
+        if (featured.length > 0) {
+          setFeaturedProducts(featured);
+        } else {
+          // Se não houver produtos em destaque, use alguns dos produtos disponíveis
+          setFeaturedProducts(allProducts.slice(0, 4));
         }
         
-        if (!response.ok) {
-          throw new Error('Falha ao buscar produtos em destaque');
-        }
-        
-        const data = await response.json();
-        setFeaturedProducts(data.products || []);
       } catch (error) {
         console.error("Erro ao buscar produtos em destaque:", error);
         toast({
           title: "Erro",
-          description: error instanceof Error ? error.message : "Não foi possível carregar os produtos em destaque.",
+          description: "Não foi possível carregar os produtos em destaque.",
           variant: "destructive"
         });
-        
-        // Fallback para produtos demo em caso de erro
-        setFeaturedProducts([]);
+        setFeaturedProducts([]); // Garantir que não há produtos indefinidos
       } finally {
         setIsLoading(false);
       }

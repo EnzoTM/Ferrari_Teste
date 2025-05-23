@@ -3,7 +3,6 @@ const mongoose = require('../db/conn');
 const ProductSchema = new mongoose.Schema({
     name: {
         type: String,
-        unique: true,
         required: true
     },
     type: {
@@ -46,4 +45,8 @@ const ProductSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const Product = mongoose.model('Product', ProductSchema);
-module.exports = Product;
+
+module.exports = {
+    ProductSchema,
+    Product,
+};

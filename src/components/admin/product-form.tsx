@@ -125,8 +125,7 @@ export default function ProductForm({ category, title, editMode = false, product
 
     // Create a product object using the backend structure
     const productData: Partial<IProduct> & { id?: string; soundFile?: string } = {
-      id: editMode && productId ? productId : undefined, // Use existing ID if in edit mode
-      _id: editMode && productId ? productId : undefined, // Use existing ID for MongoDB compatibility
+      _id: editMode && productId ? productId : undefined,
       name: formData.name,
       price: Number.parseFloat(formData.price),
       description: formData.description,
@@ -135,6 +134,8 @@ export default function ProductForm({ category, title, editMode = false, product
       featured: formData.featured,
       stock: Number.parseInt(formData.stock) || 10,
       sold: Number.parseInt(formData.sold) || 0,
+      createdAt: editMode ? undefined : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
 
     // Add sound file metadata if applicable (campo apenas para frontend)
@@ -150,7 +151,7 @@ export default function ProductForm({ category, title, editMode = false, product
     if (editMode && productId) {
       // Update existing product
       const updatedProducts = existingProducts.map((p: IProduct & { id?: string }) => 
-        (p._id === productId || p.id === productId) ? { ...productData, id: p.id, _id: p._id } : p
+        (p._id === productId) ? { ...productData, _id: p._id } : p
       )
       localStorage.setItem(storageKey, JSON.stringify(updatedProducts))
       toast({
@@ -162,9 +163,6 @@ export default function ProductForm({ category, title, editMode = false, product
       const newProduct = {
         ...productData,
         _id: `${productType}-${Date.now()}`,
-        id: `${productType}-${Date.now()}`, // Compatibilidade com o frontend existente
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       }
       localStorage.setItem(storageKey, JSON.stringify([...existingProducts, newProduct]))
       toast({

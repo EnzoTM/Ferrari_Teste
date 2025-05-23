@@ -1,4 +1,4 @@
-const Product = require('../models/Product');
+const { Product } = require('../models/Product');
 const mongoose = require('mongoose');
 const getToken = require('../helpers/get-token');
 const getUserByToken = require('../helpers/get-user-by-token');

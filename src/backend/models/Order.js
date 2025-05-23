@@ -1,37 +1,32 @@
 const mongoose = require("../db/conn");
 const { Schema } = mongoose;
+const { ProductSchema } = require('./Product');
+const { AddressSchema } = require('./Address');
+const { PaymentMethodSchema } = require('./PaymentMethod');
+const { OrderItemSchema } = require('./OrderItem');
 
 const OrderSchema = new Schema({
-  products: [{
-    product: {
-      type: Schema.Types.ObjectId,
-      ref: 'Product',
-      required: true
-    },
-    name: {
-      type: String,
-      required: true
-    },
-    price: {
-      type: Number,
-      required: true
-    },
-    quantity: {
-      type: Number,
-      required: true,
-      min: 1
-    },
-    image: {
-      type: String
-    }
-  }],
+  orderItem: {
+    type: [OrderItemSchema],
+    required: true,
+  },
   paymentMethod: {
-    type: Schema.Types.ObjectId,
-    ref: 'PaymentMethod'
+    type: PaymentMethodSchema,
+    required: true
   },
   shippingAddress: {
-    type: Schema.Types.ObjectId,
-    ref: 'Address'
+    type: AddressSchema,
+    required: true
+  },
+  totalPrice: {
+    type: Number,
+    required: true,
+    validate: {
+      validator: function(value) {
+        return value >= 0;
+      },
+      message: 'O preço total deve ser um valor positivo'
+    }
   },
 }, { timestamps: true });
 

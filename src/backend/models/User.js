@@ -3,6 +3,7 @@ const { Schema } = mongoose;
 const { AddressSchema } = require('./Address');
 const { PaymentMethodSchema } = require('./PaymentMethod');
 const { OrderSchema } = require('./Order');
+const { CartItemSchema } = require('./CartItem');
 
 const UserSchema = new Schema(
   {
@@ -43,22 +44,13 @@ const UserSchema = new Schema(
       type: PaymentMethodSchema,
       default: null
     },
-    cart: [{
-      product: {
-        type: Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true
-      },
-      quantity: {
-        type: Number,
-        required: true,
-        min: 1,
-        default: 1
-      },
-    }],
+    cart: {
+      type: [CartItemSchema],
+      default: [] // Ensure this is always initialized as an empty array
+    },
     orders: {
       type: [OrderSchema],
-      default: []
+      default: [] // Ensure this is always initialized as an empty array
     }
   },
   { timestamps: true }

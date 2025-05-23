@@ -8,16 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
-import { API_URL, authFetchConfig } from "@/lib/api"
-
-interface UserData {
-  _id: string
-  name: string
-  email: string
-  phone: string
-  admin: boolean
-  createdAt: string
-}
+import { API_URL, authFetchConfig, isAdmin, isAuthenticated } from "@/lib/api"
+import { IUser } from "@/types/models"
+import { Loader2 } from "lucide-react"
 
 export default function EditUserPage() {
   const { id } = useParams()
@@ -25,77 +18,108 @@ export default function EditUserPage() {
     name: "",
     email: "",
     phone: "",
+    cpf: "",
     password: "",
     confirmPassword: "",
     admin: false,
   })
   const [originalEmail, setOriginalEmail] = useState("")
+  const [originalCpf, setOriginalCpf] = useState("")
   const [errors, setErrors] = useState({
     email: "",
     password: "",
     confirmPassword: "",
+    cpf: "",
   })
   const [isLoading, setIsLoading] = useState(true)
 
   const router = useRouter()
   const { toast } = useToast()
 
-  // Load user data
+  // Verify authentication and admin permission
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        setIsLoading(true)
-        const response = await fetch(`${API_URL}/api/users/${id}`, authFetchConfig())
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch user data')
-        }
-        
-        const data = await response.json()
-        const user = data.user || data
-
-        if (user) {
-          setFormData({
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            password: "",
-            confirmPassword: "",
-            admin: user.admin || false,
-          })
-          setOriginalEmail(user.email)
-        } else {
-          toast({
-            title: "User not found",
-            description: "The user you are trying to edit does not exist",
-            variant: "destructive",
-          })
-          router.push("/admin/users")
-        }
-      } catch (error) {
-        console.error("Error fetching user:", error)
+    const checkAuth = async () => {
+      if (!isAuthenticated()) {
         toast({
-          title: "Error",
-          description: "Failed to load user data. Please try again.",
+          title: "Authentication required",
+          description: "You must be logged in to access this page",
+          variant: "destructive",
+        })
+        router.push('/login')
+        return
+      }
+
+      if (!isAdmin()) {
+        toast({
+          title: "Access denied",
+          description: "You don't have permission to access this page",
+          variant: "destructive",
+        })
+        router.push('/')
+        return
+      }
+
+      // After verifying permissions, fetch the user data
+      if (id) {
+        fetchUser()
+      }
+    }
+    
+    checkAuth()
+  }, [id, router, toast])
+
+  // Load user data
+  const fetchUser = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(`${API_URL}/api/users/${id}`, authFetchConfig())
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data')
+      }
+      
+      const data = await response.json()
+      const user = data.user || data as IUser
+
+      if (user) {
+        setFormData({
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          cpf: user.cpf,
+          password: "",
+          confirmPassword: "",
+          admin: user.admin || false,
+        })
+        setOriginalEmail(user.email)
+        setOriginalCpf(user.cpf)
+      } else {
+        toast({
+          title: "User not found",
+          description: "The user you are trying to edit does not exist",
           variant: "destructive",
         })
         router.push("/admin/users")
-      } finally {
-        setIsLoading(false)
       }
+    } catch (error) {
+      console.error("Error fetching user:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load user data. Please try again.",
+        variant: "destructive",
+      })
+      router.push("/admin/users")
+    } finally {
+      setIsLoading(false)
     }
-
-    if (id) {
-      fetchUser()
-    }
-  }, [id, router, toast])
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
 
     // Clear errors when typing
-    if (name === "email" || name === "password" || name === "confirmPassword") {
+    if (name === "email" || name === "password" || name === "confirmPassword" || name === "cpf") {
       setErrors((prev) => ({ ...prev, [name]: "" }))
     }
   }
@@ -106,13 +130,22 @@ export default function EditUserPage() {
 
   const validateForm = () => {
     let valid = true
-    const newErrors = { email: "", password: "", confirmPassword: "" }
+    const newErrors = { email: "", password: "", confirmPassword: "", cpf: "" }
 
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
       newErrors.email = "Please enter a valid email address"
       valid = false
+    }
+    
+    // Validate CPF format if it's been changed
+    if (formData.cpf !== originalCpf) {
+      const cpfRegex = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/
+      if (formData.cpf && !cpfRegex.test(formData.cpf)) {
+        newErrors.cpf = "CPF should be in format: 000.000.000-00"
+        valid = false
+      }
     }
 
     // Only validate password if it's being changed
@@ -146,6 +179,7 @@ export default function EditUserPage() {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
+        cpf: formData.cpf,
         admin: formData.admin,
         ...(formData.password && formData.password.length > 0 ? 
           { password: formData.password, confirmPassword: formData.confirmPassword } : {})
@@ -173,9 +207,11 @@ export default function EditUserPage() {
     } catch (error: any) {
       console.error("Error updating user:", error)
       
-      // Handle email already exists error
+      // Handle specific errors
       if (error.message && error.message.includes("email")) {
         setErrors(prev => ({ ...prev, email: "This email is already in use" }))
+      } else if (error.message && error.message.includes("cpf")) {
+        setErrors(prev => ({ ...prev, cpf: "This CPF is already registered" }))
       } else {
         toast({
           title: "Error",
@@ -191,7 +227,7 @@ export default function EditUserPage() {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-red-600 border-t-transparent"></div>
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
       </div>
     )
   }
@@ -226,6 +262,17 @@ export default function EditUserPage() {
               <Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="cpf">CPF (Brazilian ID)</Label>
+              <Input
+                id="cpf"
+                name="cpf"
+                value={formData.cpf}
+                onChange={handleInputChange}
+                required
+              />
+              {errors.cpf && <p className="text-xs text-red-600">{errors.cpf}</p>}
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="password">New Password (leave blank to keep current)</Label>
               <Input
                 id="password"
@@ -256,8 +303,15 @@ export default function EditUserPage() {
             <Button type="button" variant="outline" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-red-600 hover:bg-red-700">
-              Update User
+            <Button type="submit" className="bg-red-600 hover:bg-red-700" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update User"
+              )}
             </Button>
           </CardFooter>
         </form>

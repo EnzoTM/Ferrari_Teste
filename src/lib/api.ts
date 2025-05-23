@@ -5,12 +5,20 @@
 // Changed to use port 5000 where the backend is actually running
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+// Product types constants
+export const PRODUCT_TYPES = {
+  CAR: 'car',
+  FORMULA1: 'formula1',
+  HELMET: 'helmet',
+};
+
 // Endpoints updated to correspond to the backend
 export const API_ENDPOINTS = {
   // Usuários
   login: `${API_URL}/api/users/login`,
   register: `${API_URL}/api/users/register`,
-  checkUser: `${API_URL}/api/users/check-user`,
+  adminRegister: `${API_URL}/api/users/admin/register`, // Updated to use the admin registration endpoint
+  checkUser: `${API_URL}/api/users/check`, // Fixed to match the backend route name
   users: `${API_URL}/api/users`,
   userById: (id: string) => `${API_URL}/api/users/${id}`,
   

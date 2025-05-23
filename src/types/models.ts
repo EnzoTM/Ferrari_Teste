@@ -20,12 +20,55 @@ export interface IAddress {
 // Interface para Método de Pagamento
 export interface IPaymentMethod {
   _id?: string;
-  type: 'credit' | 'debit' | 'pix' | 'bankslip';
-  cardNumber?: string;
-  cardHolderName?: string;
-  expirationDate?: string;
-  cvv?: string;
-  isDefault?: boolean;
+  type: 'credit' | 'debit';
+  cardNumber: string;
+  cardHolderName: string;
+  expirationDate: string;
+  cvv: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Interface para Produto
+export interface IProduct {
+  _id?: string;
+  name: string;
+  price: number;
+  description: string;
+  type: 'car' | 'helmet' | 'formula1';
+  images: string[];
+  featured?: boolean;
+  stock?: number;
+  sold?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Interface para Item do Carrinho
+export interface ICartItem {
+  _id?: string;
+  product: IProduct;
+  quantity: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Interface para Item do Pedido
+export interface IOrderItem {
+  _id?: string;
+  product: IProduct;
+  quantity: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Interface para Pedido
+export interface IOrder {
+  _id?: string;
+  orderItem: IOrderItem[];
+  paymentMethod: IPaymentMethod;
+  shippingAddress: IAddress;
+  totalPrice: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -39,56 +82,15 @@ export interface IUser {
   phone: string;
   cpf: string;
   admin?: boolean;
-  addresses?: IAddress[];
-  paymentMethods?: IPaymentMethod[];
-  cart?: ICartProduct[];
-  orders?: IOrder[];
+  address?: IAddress | null;
+  paymentMethod?: IPaymentMethod | null;
+  cart: ICartItem[];
+  orders: IOrder[];
   createdAt?: string;
   updatedAt?: string;
 }
 
-// Interface para Categoria
-export interface ICategory {
-  _id?: string;
-  name: string;
-  description?: string;
-  slug?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-// Interface para Produto
-export interface IProduct {
-  _id?: string;
-  name: string;
-  price: number;
-  description: string;
-  type: 'car' | 'formula1' | 'helmet';
-  images: string[];
-  featured?: boolean;
-  stock?: number;
-  sold?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-// Interface para Item do Carrinho no backend
-export interface ICartProduct {
-  product: string | IProduct;
-  quantity: number;
-}
-
-// Interface para Item do Carrinho no frontend
-export interface ICartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  category: string;
-}
-
-// Interface para o Carrinho completo
+// Interface para o Carrinho no frontend
 export interface ICart {
   items: ICartItem[];
   total: number;
@@ -102,26 +104,6 @@ export interface CartContextState {
   updateItemQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   itemCount: number;
-}
-
-// Interface para produtos do Pedido
-export interface IOrderProduct {
-  product: string | IProduct;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-}
-
-// Interface para Pedido
-export interface IOrder {
-  _id?: string;
-  products: IOrderProduct[];
-  paymentMethod?: string | IPaymentMethod;
-  shippingAddress?: string | IAddress;
-  status?: 'pending' | 'processing' | 'shipped' | 'delivered' | 'canceled';
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 // Interface para Resposta da API
