@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,7 +11,7 @@ import AddressesSection from "@/components/profile/addresses-section"
 import PaymentMethodsSection from "@/components/profile/payment-methods-section"
 import OrdersSection from "@/components/profile/orders-section"
 import { useToast } from "@/components/ui/use-toast"
-import { API_URL, authFetchConfig, getUserId, getUserProfile, isAuthenticated, logout } from "@/lib/api"
+import { API_ENDPOINTS, fetchWithAuth, isAuthenticated, logout } from "@/lib/api"
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -22,7 +23,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Check if user is authenticated
+        // Check if user is authenticated - redirecionamento imediato se não estiver
         if (!isAuthenticated()) {
           toast({
             title: "Acesso não autorizado",
@@ -35,24 +36,33 @@ export default function ProfilePage() {
 
         // Get user data from API
         try {
-          const response = await fetch(`${API_URL}/api/users/check`, authFetchConfig())
+          const userId = localStorage.getItem('userId')
+          if (!userId) {
+            throw new Error('User ID not found')
+          }
+          
+          // Tentar obter os dados do usuário
+          const response = await fetchWithAuth(`${API_ENDPOINTS.userById(userId)}`)
           
           if (!response.ok) {
+            // Se a resposta não for bem-sucedida, pode ser um problema com o token
+            // ou o usuário não existe mais
             throw new Error('Failed to fetch user data')
           }
           
-          const user = await response.json()
-          setUserData(user)
+          const data = await response.json()
+          setUserData(data.user)
         } catch (error) {
           console.error("Error fetching user profile:", error)
           
           toast({
             title: "Erro ao carregar perfil",
-            description: "Não foi possível carregar seus dados. Tente novamente mais tarde.",
+            description: "Não foi possível carregar seus dados. Por favor, faça login novamente.",
             variant: "destructive",
           })
           
-          // Redirect to login if we can't get user data
+          // Fazer logout e redirecionar para login em caso de erro de autenticação
+          logout()
           router.push('/login')
         }
       } catch (error) {
@@ -83,6 +93,31 @@ export default function ProfilePage() {
     return (
       <div className="container flex min-h-[70vh] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-red-600 border-t-transparent"></div>
+      </div>
+    )
+  }
+
+  // Se não há dados do usuário e não está carregando, mostrar mensagem de erro
+  if (!userData) {
+    return (
+      <div className="container py-8">
+        <Card className="p-6">
+          <div className="text-center">
+            <h2 className="text-xl font-bold mb-4">Erro ao carregar perfil</h2>
+            <p className="mb-6">Não foi possível carregar as informações do seu perfil. Por favor, tente fazer login novamente.</p>
+            <div className="flex justify-center gap-4">
+              <Button variant="outline" onClick={() => router.push('/')}>
+                Voltar para Home
+              </Button>
+              <Button 
+                className="bg-red-600 hover:bg-red-700" 
+                onClick={() => router.push('/login')}
+              >
+                Fazer Login
+              </Button>
+            </div>
+          </div>
+        </Card>
       </div>
     )
   }
@@ -120,11 +155,6 @@ export default function ProfilePage() {
         <TabsContent value="account">
           <Card className="p-6">
             <AccountForm userData={userData} />
-            {!userData && (
-              <div className="mt-4 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800">
-                <p>Não foi possível carregar seus dados. Por favor, tente novamente mais tarde.</p>
-              </div>
-            )}
           </Card>
         </TabsContent>
         

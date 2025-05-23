@@ -1,258 +1,150 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { ICartItem } from "@/types/models"
-import { API_ENDPOINTS, API_URL, fetchWithAuth, isAuthenticated } from "@/lib/api"
+import React, { createContext, useContext, useState, useEffect } from "react"
+import { ICartItem, ICart, CartContextState } from "@/types/models"
+import { useToast } from "@/components/ui/use-toast"
 
-interface CartContextType {
-  items: ICartItem[]
-  addItem: (item: Omit<ICartItem, "quantity"> & { quantity?: number }) => void
-  removeItem: (id: string) => void
-  updateQuantity: (id: string, quantity: number) => void
-  clearCart: () => void
-  syncWithUserCart: () => Promise<void>
-  saveCartToUser: () => Promise<boolean>
-  checkout: () => Promise<boolean>
-  itemCount: number
-  subtotal: number
-  total: number
-  shipping: number
-  isLoading: boolean
-}
+const CartContext = createContext<CartContextState | undefined>(undefined)
 
-const CartContext = createContext<CartContextType | undefined>(undefined)
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const [cart, setCart] = useState<ICart>(() => {
+    // Inicializa o carrinho com valores do localStorage, se disponível
+    if (typeof window !== "undefined") {
+      const savedCart = localStorage.getItem("ferrariCart")
+      if (savedCart) {
+        try {
+          return JSON.parse(savedCart)
+        } catch (error) {
+          console.error("Erro ao analisar carrinho salvo:", error)
+        }
+      }
+    }
+    return { items: [], total: 0 }
+  })
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<ICartItem[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const shipping = 15.99
+  const { toast } = useToast()
 
-  // Carregar carrinho do localStorage na renderização inicial
+  // Salvar carrinho no localStorage quando mudar
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart")
-    if (savedCart) {
-      try {
-        setItems(JSON.parse(savedCart))
-      } catch (error) {
-        console.error("Falha ao analisar carrinho do localStorage:", error)
-      }
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ferrariCart", JSON.stringify(cart))
     }
-  }, [])
+  }, [cart])
 
-  // Tenta sincronizar com o carrinho do usuário se ele estiver logado
-  useEffect(() => {
-    if (isAuthenticated()) {
-      syncWithUserCart();
-    }
-  }, []);
+  // Calcular o total do carrinho
+  const calculateTotal = (items: ICartItem[]): number => {
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  }
 
-  // Salvar carrinho no localStorage sempre que ele mudar
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(items))
-  }, [items])
-
-  // Sincroniza o carrinho local com o carrinho do usuário logado
-  const syncWithUserCart = async () => {
-    if (!isAuthenticated()) return;
-    
-    try {
-      setIsLoading(true);
-      const response = await fetchWithAuth(API_ENDPOINTS.userProfile);
-      const userData = await response.json();
-      
-      if (userData && userData.user && userData.user.cart && userData.user.cart.length > 0) {
-        // Converter os itens do carrinho do usuário para o formato do carrinho local
-        const userCartItems: ICartItem[] = userData.user.cart.map((item: any) => ({
-          id: item.product._id,
-          name: item.product.name,
-          price: item.product.price,
-          image: item.product.images && item.product.images.length > 0 
-            ? `${API_URL}/public/images/products/${item.product.images[0]}`
-            : '/placeholder.svg',
-          quantity: item.quantity,
-          color: item.color,
-          size: item.size,
-          category: item.product.category
-        }));
-        
-        // Mesclar os itens locais com os itens do carrinho do usuário
-        const mergedCart = mergeCartItems([...items, ...userCartItems]);
-        setItems(mergedCart);
-      }
-    } catch (error) {
-      console.error('Erro ao sincronizar carrinho:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Mescla carrinho, somando quantidades de itens iguais
-  const mergeCartItems = (cartItems: ICartItem[]): ICartItem[] => {
-    const itemMap = new Map<string, ICartItem>();
-    
-    cartItems.forEach(item => {
-      const key = `${item.id}-${item.color || ''}-${item.size || ''}`;
-      
-      if (itemMap.has(key)) {
-        const existingItem = itemMap.get(key)!;
-        existingItem.quantity += item.quantity;
-      } else {
-        itemMap.set(key, { ...item });
-      }
-    });
-    
-    return Array.from(itemMap.values());
-  };
-
-  // Salva o carrinho no perfil do usuário logado
-  const saveCartToUser = async (): Promise<boolean> => {
-    if (!isAuthenticated() || items.length === 0) return false;
-    
-    try {
-      setIsLoading(true);
-      
-      // Preparar os itens no formato que o backend espera
-      const cartItems = items.map(item => ({
-        product: item.id,
-        quantity: item.quantity,
-        color: item.color,
-        size: item.size
-      }));
-      
-      // Atualizar o carrinho do usuário
-      const response = await fetchWithAuth(API_ENDPOINTS.cart, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ items: cartItems })
-      });
-      
-      return response.ok;
-    } catch (error) {
-      console.error('Erro ao salvar carrinho:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Finaliza a compra, transferindo itens do carrinho para pedidos
-  const checkout = async (): Promise<boolean> => {
-    if (!isAuthenticated() || items.length === 0) return false;
-    
-    try {
-      setIsLoading(true);
-      
-      // Preparar os itens para o checkout
-      const orderItems = items.map(item => ({
-        product: item.id,
-        quantity: item.quantity,
-        price: item.price,
-        color: item.color,
-        size: item.size
-      }));
-      
-      // Criar o pedido
-      const response = await fetchWithAuth(API_ENDPOINTS.orders, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          items: orderItems,
-          // Outros dados do pedido seriam adicionados aqui em uma implementação completa
-          // shippingAddress, paymentMethod, etc.
-        })
-      });
-      
-      if (response.ok) {
-        // Limpar carrinho após checkout bem-sucedido
-        clearCart();
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Erro ao finalizar compra:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Adicionar item ao carrinho
   const addItem = (newItem: Omit<ICartItem, "quantity"> & { quantity?: number }) => {
-    setItems((currentItems) => {
+    setCart((prevCart) => {
       // Verificar se o item já existe no carrinho
-      const existingItemIndex = currentItems.findIndex(
-        (item) => item.id === newItem.id && 
-                  item.color === newItem.color && 
-                  item.size === newItem.size
-      );
-      
-      const quantityToAdd = newItem.quantity || 1;
-      
-      if (existingItemIndex > -1) {
-        // Item existe, incrementar quantidade
-        const updatedItems = [...currentItems];
-        updatedItems[existingItemIndex].quantity += quantityToAdd;
-        return updatedItems;
+      const existingItemIndex = prevCart.items.findIndex((item) => item.id === newItem.id)
+      let updatedItems: ICartItem[]
+
+      if (existingItemIndex >= 0) {
+        // Se já existe, aumentar a quantidade
+        updatedItems = [...prevCart.items]
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: updatedItems[existingItemIndex].quantity + (newItem.quantity || 1)
+        }
       } else {
-        // Item não existe, adicionar novo item com quantidade especificada ou default 1
-        return [...currentItems, { ...newItem, quantity: quantityToAdd }];
+        // Se não existe, adicionar novo item
+        updatedItems = [
+          ...prevCart.items,
+          { ...newItem, quantity: newItem.quantity || 1 } as ICartItem
+        ]
       }
-    });
-  };
 
-  const removeItem = (id: string) => {
-    setItems((currentItems) => currentItems.filter((item) => item.id !== id));
-  };
+      // Calcular o novo total
+      const newTotal = calculateTotal(updatedItems)
 
-  const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) return;
-    
-    setItems((currentItems) => 
-      currentItems.map((item) => 
-        (item.id === id ? { ...item, quantity } : item)
-      )
-    );
-  };
+      toast({
+        title: "Item adicionado ao carrinho",
+        description: `${newItem.name} foi adicionado ao seu carrinho`,
+      })
 
+      return { items: updatedItems, total: newTotal }
+    })
+  }
+
+  // Remover item do carrinho
+  const removeItem = (itemId: string) => {
+    setCart((prevCart) => {
+      const updatedItems = prevCart.items.filter((item) => item.id !== itemId)
+      const newTotal = calculateTotal(updatedItems)
+
+      // Mostrar toast de notificação
+      const removedItem = prevCart.items.find((item) => item.id === itemId)
+      if (removedItem) {
+        toast({
+          title: "Item removido",
+          description: `${removedItem.name} foi removido do seu carrinho`,
+        })
+      }
+
+      return { items: updatedItems, total: newTotal }
+    })
+  }
+
+  // Atualizar quantidade de um item
+  const updateItemQuantity = (itemId: string, quantity: number) => {
+    if (quantity < 1) return
+
+    setCart((prevCart) => {
+      const itemIndex = prevCart.items.findIndex((item) => item.id === itemId)
+      if (itemIndex === -1) return prevCart
+
+      const updatedItems = [...prevCart.items]
+      updatedItems[itemIndex] = { ...updatedItems[itemIndex], quantity }
+      const newTotal = calculateTotal(updatedItems)
+
+      return { items: updatedItems, total: newTotal }
+    })
+  }
+
+  // Limpar o carrinho
   const clearCart = () => {
-    setItems([]);
-  };
+    setCart({ items: [], total: 0 })
+    toast({
+      title: "Carrinho limpo",
+      description: "Todos os itens foram removidos do seu carrinho",
+    })
+  }
 
-  const itemCount = items.reduce((count, item) => count + item.quantity, 0);
-  const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
-  const total = subtotal + shipping;
+  // Converter o carrinho para o formato do backend
+  const getBackendCartFormat = () => {
+    return cart.items.map(item => ({
+      product: item.id,
+      quantity: item.quantity
+    }))
+  }
+
+  // Total de itens no carrinho (soma das quantidades)
+  const itemCount = cart.items.reduce((count, item) => count + item.quantity, 0)
 
   return (
     <CartContext.Provider
       value={{
-        items,
+        cart,
         addItem,
         removeItem,
-        updateQuantity,
+        updateItemQuantity,
         clearCart,
-        syncWithUserCart,
-        saveCartToUser,
-        checkout,
         itemCount,
-        subtotal,
-        shipping,
-        total,
-        isLoading,
       }}
     >
       {children}
     </CartContext.Provider>
-  );
+  )
 }
 
 export function useCart() {
-  const context = useContext(CartContext);
+  const context = useContext(CartContext)
   if (context === undefined) {
-    throw new Error("useCart deve ser usado dentro de um CartProvider");
+    throw new Error("useCart must be used within a CartProvider")
   }
-  return context;
+  return context
 }

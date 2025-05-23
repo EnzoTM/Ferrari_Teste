@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
-import { API_URL, authFetchConfig } from "@/lib/api"
+import { API_URL, API_ENDPOINTS, authFetchConfig } from "@/lib/api"
 import { Package, ChevronDown, ChevronUp, Clock, Truck, CheckCircle, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -41,21 +41,23 @@ export default function OrdersSection() {
     const fetchOrders = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch(`${API_URL}/api/users/orders`, authFetchConfig())
+        const response = await fetch(API_ENDPOINTS.orders, authFetchConfig())
         
         if (!response.ok) {
-          throw new Error('Failed to fetch orders')
+          console.error(`Error fetching orders: ${response.status} - ${response.statusText}`)
+          throw new Error(`Failed to fetch orders: ${response.statusText}`)
         }
         
         const data = await response.json()
-        setOrders(data.orders || [])
+        setOrders(Array.isArray(data.orders) ? data.orders : [])
       } catch (error) {
         console.error("Error fetching orders:", error)
         toast({
-          title: "Erro",
-          description: "Não foi possível carregar seus pedidos.",
+          title: "Erro ao carregar pedidos",
+          description: "Não foi possível carregar seus pedidos. Tente novamente mais tarde.",
           variant: "destructive"
         })
+        setOrders([])
       } finally {
         setIsLoading(false)
       }

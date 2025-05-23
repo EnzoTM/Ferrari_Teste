@@ -13,6 +13,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { useToast } from "@/components/ui/use-toast"
 import { Upload, Volume2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { IProduct } from "@/types/models"
 
 interface ProductFormProps {
   category: "cars" | "formula1" | "helmets"
@@ -21,30 +22,16 @@ interface ProductFormProps {
   productId?: string
 }
 
-interface ProductData {
-  id: string
-  name: string
-  price: number
-  description: string
-  images: string[]
-  category: string
-  inStock: boolean
-  hasSound: boolean
-  soundFile?: string
-  quantity?: number
-  sold?: number
-}
-
 export default function ProductForm({ category, title, editMode = false, productId }: ProductFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     price: "",
     description: "",
-    inStock: true,
-    hasSound: category !== "helmets", // Helmets don't have sound by default
-    soundFile: "",
-    quantity: "10", // Valor padrão para quantidade
+    featured: false,
+    stock: "10", // Valor padrão para quantidade
     sold: "0", // Valor padrão para vendas
+    hasSound: category !== "helmets", // Campo adicional para controle de frontend
+    soundFile: "", // Campo adicional para controle de frontend
   })
 
   const [images, setImages] = useState<string[]>([
@@ -57,23 +44,37 @@ export default function ProductForm({ category, title, editMode = false, product
   const router = useRouter()
   const { toast } = useToast()
 
+  // Mapeamento de categoria para o tipo de produto
+  const getCategoryType = (category: string): "car" | "formula1" | "helmet" => {
+    switch (category) {
+      case "cars":
+        return "car"
+      case "formula1":
+        return "formula1"
+      case "helmets":
+        return "helmet"
+      default:
+        return "car"
+    }
+  }
+
   // Load product data if in edit mode
   useEffect(() => {
     if (editMode && productId) {
       const storageKey = `ferrari${category.charAt(0).toUpperCase() + category.slice(1)}`
       const products = JSON.parse(localStorage.getItem(storageKey) || "[]")
-      const product = products.find((p: ProductData) => p.id === productId)
+      const product = products.find((p: IProduct) => p._id === productId || p.id === productId)
 
       if (product) {
         setFormData({
           name: product.name,
           price: product.price.toString(),
           description: product.description,
-          inStock: product.inStock,
-          hasSound: product.hasSound,
-          soundFile: product.soundFile || "",
-          quantity: product.quantity !== undefined ? product.quantity.toString() : "10",
+          featured: product.featured || false,
+          stock: product.stock !== undefined ? product.stock.toString() : "10",
           sold: product.sold !== undefined ? product.sold.toString() : "0",
+          hasSound: !!product.soundFile, // Campo adicional
+          soundFile: product.soundFile || "", // Campo adicional
         })
         setImages(product.images)
         setSoundFileName(product.soundFile ? "sound-file.mp3" : "")
@@ -85,7 +86,7 @@ export default function ProductForm({ category, title, editMode = false, product
     const { name, value } = e.target
 
     // Para campos numéricos, garantir que apenas números sejam aceitos
-    if (name === "quantity" || name === "sold") {
+    if (name === "stock" || name === "sold") {
       const numericValue = value.replace(/\D/g, "")
       setFormData((prev) => ({ ...prev, [name]: numericValue }))
     } else {
@@ -119,23 +120,27 @@ export default function ProductForm({ category, title, editMode = false, product
       return
     }
 
-    // Create a product object
-    const productData = {
-      id: editMode && productId ? productId : `${category.charAt(0)}-${Date.now()}`, // Use existing ID or generate a new one
+    // Converter tipo de categoria para o formato do backend
+    const productType = getCategoryType(category)
+
+    // Create a product object using the backend structure
+    const productData: Partial<IProduct> & { id?: string; soundFile?: string } = {
+      id: editMode && productId ? productId : undefined, // Use existing ID if in edit mode
+      _id: editMode && productId ? productId : undefined, // Use existing ID for MongoDB compatibility
       name: formData.name,
       price: Number.parseFloat(formData.price),
       description: formData.description,
       images: images,
-      category: category,
-      inStock: formData.inStock,
-      hasSound: formData.hasSound,
-      quantity: Number.parseInt(formData.quantity) || 10,
+      type: productType,
+      featured: formData.featured,
+      stock: Number.parseInt(formData.stock) || 10,
       sold: Number.parseInt(formData.sold) || 0,
-      ...(formData.hasSound && formData.soundFile && { soundFile: formData.soundFile }),
     }
 
-    // Atualizar o status inStock com base na quantidade
-    productData.inStock = productData.quantity > 0
+    // Add sound file metadata if applicable (campo apenas para frontend)
+    if (formData.hasSound && formData.soundFile) {
+      productData.soundFile = formData.soundFile
+    }
 
     // In a real app, this would be sent to an API
     // For demo, we'll store in localStorage
@@ -144,15 +149,24 @@ export default function ProductForm({ category, title, editMode = false, product
 
     if (editMode && productId) {
       // Update existing product
-      const updatedProducts = existingProducts.map((p: ProductData) => (p.id === productId ? productData : p))
+      const updatedProducts = existingProducts.map((p: IProduct & { id?: string }) => 
+        (p._id === productId || p.id === productId) ? { ...productData, id: p.id, _id: p._id } : p
+      )
       localStorage.setItem(storageKey, JSON.stringify(updatedProducts))
       toast({
         title: "Product updated",
         description: `${formData.name} has been updated`,
       })
     } else {
-      // Add new product
-      localStorage.setItem(storageKey, JSON.stringify([...existingProducts, productData]))
+      // Add new product with a new ID
+      const newProduct = {
+        ...productData,
+        _id: `${productType}-${Date.now()}`,
+        id: `${productType}-${Date.now()}`, // Compatibilidade com o frontend existente
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      localStorage.setItem(storageKey, JSON.stringify([...existingProducts, newProduct]))
       toast({
         title: "Product added",
         description: `${formData.name} has been added to the store`,
@@ -165,11 +179,11 @@ export default function ProductForm({ category, title, editMode = false, product
         name: "",
         price: "",
         description: "",
-        inStock: true,
+        featured: false,
+        stock: "10",
+        sold: "0",
         hasSound: category !== "helmets",
         soundFile: "",
-        quantity: "10",
-        sold: "0",
       })
       setSoundFileName("")
     }
@@ -214,13 +228,13 @@ export default function ProductForm({ category, title, editMode = false, product
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity in Stock</Label>
+              <Label htmlFor="stock">Stock Quantity</Label>
               <Input
-                id="quantity"
-                name="quantity"
+                id="stock"
+                name="stock"
                 type="number"
                 min="0"
-                value={formData.quantity}
+                value={formData.stock}
                 onChange={handleChange}
                 placeholder="10"
                 required
@@ -274,11 +288,11 @@ export default function ProductForm({ category, title, editMode = false, product
 
           <div className="flex items-center space-x-2">
             <Switch
-              id="inStock"
-              checked={formData.inStock}
-              onCheckedChange={(checked) => handleSwitchChange("inStock", checked)}
+              id="featured"
+              checked={formData.featured}
+              onCheckedChange={(checked) => handleSwitchChange("featured", checked)}
             />
-            <Label htmlFor="inStock">In Stock</Label>
+            <Label htmlFor="featured">Featured Product</Label>
           </div>
 
           {category !== "helmets" && (

@@ -2,103 +2,94 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
-import { useToast } from "@/components/ui/use-toast"
-import { useRouter } from "next/navigation"
-import { IProduct } from "@/types/models"
-import { API_URL } from "@/lib/api"
-import { ShoppingCart, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { formatCurrency } from "@/lib/utils"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { IProduct } from "@/types/models"
+import { useCart } from "@/context/cart-context"
+import { useToast } from "@/hooks/use-toast"
+import { ShoppingCart } from "lucide-react"
 
 interface ProductCardProps {
   product: IProduct
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const [isHovered, setIsHovered] = useState(false)
+  const { addItem } = useCart()
   const { toast } = useToast()
-  const router = useRouter()
-  
-  // Determina a imagem a ser exibida
-  const imageUrl = product.images && product.images.length > 0
-    ? `${API_URL}/${product.images[0]}`
-    : `/placeholder.jpg`
-  
-  // Função para adicionar ao carrinho
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    // Implementação da lógica de adicionar ao carrinho será feita posteriormente
-    // usando o CartContext
-    
-    toast({
-      title: "Adicionado ao carrinho",
-      description: `${product.name} foi adicionado ao seu carrinho.`,
-      variant: "default",
-    })
+
+  const handleAddToCart = () => {
+    // Converter o produto para o formato de item do carrinho
+    const cartItem = {
+      id: product._id || "",
+      name: product.name,
+      price: product.price,
+      image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg",
+      category: product.type
+    }
+
+    addItem(cartItem)
   }
-  
-  // Função para visualizar detalhes
-  const handleViewDetails = (e: React.MouseEvent) => {
-    e.preventDefault()
-    router.push(`/product/${product._id}`)
+
+  // Verificar se a imagem principal existe
+  const mainImage = product.images && product.images.length > 0 
+    ? product.images[0] 
+    : "/placeholder.svg"
+
+  // Formatar preço
+  const formattedPrice = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(product.price)
+
+  // Determinar o link do produto com base no tipo
+  const getProductLink = () => {
+    return `/product/${product._id}`
   }
-  
+
+  // Verificar disponibilidade de estoque
+  const isInStock = !product.stock || product.stock > 0
+
   return (
-    <div 
-      className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md transition-all duration-300 hover:shadow-lg"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <Link href={`/product/${product._id}`} className="block">
-        <div className="relative h-64 w-full overflow-hidden">
-          <Image 
-            src={imageUrl}
+    <Card className="group overflow-hidden rounded-lg transition-all hover:shadow-md">
+      <Link href={getProductLink()} className="block">
+        <div className="relative aspect-square overflow-hidden">
+          <Image
+            src={mainImage}
             alt={product.name}
             fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
-          
-          {/* Botões de ação */}
-          <div 
-            className={`absolute inset-0 flex items-center justify-center gap-2 bg-black/30 transition-opacity duration-300 ${
-              isHovered ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <Button 
-              size="icon" 
-              variant="outline" 
-              className="h-10 w-10 rounded-full bg-white text-red-600 hover:bg-red-600 hover:text-white"
-              onClick={handleAddToCart}
-            >
-              <ShoppingCart className="h-5 w-5" />
-            </Button>
-            
-            <Button 
-              size="icon" 
-              variant="outline" 
-              className="h-10 w-10 rounded-full bg-white text-red-600 hover:bg-red-600 hover:text-white"
-              onClick={handleViewDetails}
-            >
-              <Eye className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-        
-        <div className="p-4">
-          <h3 className="mb-1 text-lg font-semibold text-gray-900">{product.name}</h3>
-          <p className="mb-2 text-sm text-gray-500 line-clamp-2">{product.description}</p>
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-lg font-bold text-red-600">{formatCurrency(product.price)}</span>
-            <span className="text-xs text-gray-500">
-              {product.stock && product.stock > 0 ? `${product.stock} em estoque` : 'Esgotado'}
-            </span>
-          </div>
+          {product.featured && (
+            <div className="absolute left-2 top-2 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white">
+              Destaque
+            </div>
+          )}
+          {!isInStock && (
+            <div className="absolute bottom-0 left-0 right-0 bg-black/70 py-2 text-center text-sm font-semibold text-white">
+              Esgotado
+            </div>
+          )}
         </div>
       </Link>
-    </div>
+      <CardContent className="p-4">
+        <Link href={getProductLink()} className="block">
+          <h3 className="mb-1 line-clamp-1 text-lg font-semibold">{product.name}</h3>
+          <p className="line-clamp-2 text-sm text-gray-500">{product.description}</p>
+        </Link>
+      </CardContent>
+      <CardFooter className="flex items-center justify-between border-t p-4">
+        <span className="text-lg font-bold text-red-600">{formattedPrice}</span>
+        <Button 
+          size="sm" 
+          onClick={handleAddToCart}
+          disabled={!isInStock}
+          className="bg-red-600 hover:bg-red-700"
+        >
+          <ShoppingCart className="mr-2 h-4 w-4" />
+          Comprar
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }

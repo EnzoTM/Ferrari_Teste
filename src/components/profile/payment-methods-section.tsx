@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { API_URL, authFetchConfig } from "@/lib/api"
+import { API_URL, API_ENDPOINTS, authFetchConfig } from "@/lib/api"
 import { 
   Plus, Edit, Trash2, CreditCard, CheckCircle2, 
   Wallet, QrCode, Receipt, BanknoteIcon 
@@ -62,7 +62,7 @@ export default function PaymentMethodsSection() {
     const fetchPaymentMethods = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch(`${API_URL}/api/users/payment-methods`, authFetchConfig())
+        const response = await fetch(API_ENDPOINTS.paymentMethods, authFetchConfig())
         
         if (!response.ok) {
           throw new Error('Failed to fetch payment methods')
@@ -91,22 +91,57 @@ export default function PaymentMethodsSection() {
     if (!validatePaymentForm()) {
       return
     }
-
+    
     try {
       const isEditing = !!currentPayment?._id
       const url = isEditing 
-        ? `${API_URL}/api/users/payment-methods/${currentPayment?._id}` 
-        : `${API_URL}/api/users/payment-methods`
+        ? `${API_ENDPOINTS.paymentMethods}/${currentPayment?._id}` 
+        : API_ENDPOINTS.paymentMethods
       
       const method = isEditing ? 'PUT' : 'POST'
-      const response = await fetch(url, authFetchConfig(method, currentPayment))
-
+      const response = await fetch(url, authFetchConfig(method, {body: currentPayment}))
+      
       if (!response.ok) {
         throw new Error(isEditing ? 'Falha ao atualizar método de pagamento' : 'Falha ao adicionar método de pagamento')
       }
-
+      
       const data = await response.json()
-      setPaymentMethods(data.paymentMethods)
+      
+      // Garantir que os métodos de pagamento sejam atualizados corretamente
+      if (Array.isArray(data.paymentMethods)) {
+        setPaymentMethods(data.paymentMethods)
+      } else if (isEditing && currentPayment) {
+        // Atualizar localmente se o servidor não retornar a lista completa
+        const updatedPaymentMethods = paymentMethods.map(payment => 
+          payment._id === currentPayment._id ? {...currentPayment} : payment
+        );
+        
+        // Se o método foi marcado como padrão, atualizar outros métodos
+        if (currentPayment.isDefault) {
+          updatedPaymentMethods.forEach(payment => {
+            if (payment._id !== currentPayment._id) {
+              payment.isDefault = false;
+            }
+          });
+        }
+        
+        setPaymentMethods(updatedPaymentMethods);
+      } else if (currentPayment) {
+        // Adicionar novo método localmente se o servidor não retornar a lista completa
+        const newPayment = {...currentPayment, _id: data._id || Date.now().toString()};
+        
+        // Se o novo método for padrão, garantir que outros não sejam
+        if (newPayment.isDefault) {
+          const updatedPaymentMethods = paymentMethods.map(payment => ({
+            ...payment,
+            isDefault: false
+          }));
+          setPaymentMethods([...updatedPaymentMethods, newPayment]);
+        } else {
+          setPaymentMethods([...paymentMethods, newPayment]);
+        }
+      }
+      
       setIsPaymentDialogOpen(false)
       
       toast({
@@ -128,16 +163,21 @@ export default function PaymentMethodsSection() {
   const handleDeletePayment = async (paymentId: string) => {
     try {
       const response = await fetch(
-        `${API_URL}/api/users/payment-methods/${paymentId}`,
+        `${API_ENDPOINTS.paymentMethods}/${paymentId}`,
         authFetchConfig('DELETE')
       )
-
       if (!response.ok) {
         throw new Error('Failed to delete payment method')
       }
-
       const data = await response.json()
-      setPaymentMethods(data.paymentMethods)
+      
+      // Garantir que os métodos de pagamento sejam atualizados corretamente
+      if (Array.isArray(data.paymentMethods)) {
+        setPaymentMethods(data.paymentMethods)
+      } else {
+        // Remover o método de pagamento localmente se o servidor não retornar a lista completa
+        setPaymentMethods(paymentMethods.filter(method => method._id !== paymentId))
+      }
       
       toast({
         title: "Método de pagamento removido",
@@ -160,16 +200,24 @@ export default function PaymentMethodsSection() {
       if (!payment) return
       
       const response = await fetch(
-        `${API_URL}/api/users/payment-methods/${paymentId}`,
+        `${API_ENDPOINTS.paymentMethods}/${paymentId}`,
         authFetchConfig('PUT', { ...payment, isDefault: true })
       )
-
       if (!response.ok) {
         throw new Error('Failed to set default payment method')
       }
-
       const data = await response.json()
-      setPaymentMethods(data.paymentMethods)
+      
+      // Garantir que os métodos de pagamento sejam atualizados corretamente
+      if (Array.isArray(data.paymentMethods)) {
+        setPaymentMethods(data.paymentMethods)
+      } else {
+        // Atualizar os métodos de pagamento localmente se o servidor não retornar a lista completa
+        setPaymentMethods(paymentMethods.map(method => ({
+          ...method,
+          isDefault: method._id === paymentId
+        })))
+      }
       
       toast({
         title: "Método de pagamento padrão atualizado",

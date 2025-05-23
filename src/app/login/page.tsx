@@ -1,5 +1,6 @@
 "use client"
 
+import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -15,8 +16,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
   const router = useRouter()
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,37 +45,19 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Armazenar token e informações do usuário
-        if (data.token) {
-          localStorage.setItem('token', data.token)
-        }
+        // Armazenar token e informações do usuário no localStorage
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data.userId);
+        localStorage.setItem('isAdmin', data.admin ? 'true' : 'false');
         
-        // Verificar se data.user existe antes de acessar suas propriedades
-        if (data.user) {
-          if (data.user._id) {
-            localStorage.setItem('userId', data.user._id)
-          }
-          
-          localStorage.setItem('isAdmin', data.user.admin ? 'true' : 'false')
-          
-          toast({
-            title: "Login realizado com sucesso",
-            description: "Você será redirecionado para a página inicial.",
-          })
-          
-          // Redirecionar com base no tipo de usuário
-          if (data.user.admin) {
-            router.push('/admin')
-          } else {
-            router.push('/')
-          }
+        toast({
+          title: "Login realizado com sucesso",
+          description: "Você será redirecionado para a página inicial.",
+        })
+        
+        if (data.admin) {
+          router.push('/admin')
         } else {
-          // Se data.user não existe, mostrar uma mensagem genérica de sucesso
-          toast({
-            title: "Login realizado com sucesso",
-            description: "Você será redirecionado para a página inicial.",
-          })
-          
           router.push('/')
         }
       } else {
@@ -96,31 +79,27 @@ export default function LoginPage() {
     <div className="container flex items-center justify-center py-10">
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Entrar</CardTitle>
+          <CardTitle className="text-2xl font-bold">Login</CardTitle>
           <CardDescription>
-            Digite seu e-mail e senha para acessar sua conta
+            Entre com seu email e senha para acessar sua conta
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
+              <Input 
+                id="email" 
                 type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-gray-500 hover:text-gray-900"
-                >
+                <Link href="#" className="text-sm text-red-600 hover:text-red-800">
                   Esqueceu a senha?
                 </Link>
               </div>
@@ -132,8 +111,10 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <Button
-              type="submit"
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <Button 
+              type="submit" 
               className="w-full bg-red-600 hover:bg-red-700"
               disabled={isLoading}
             >
@@ -146,16 +127,14 @@ export default function LoginPage() {
                 "Entrar"
               )}
             </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex flex-col items-center justify-center space-y-2">
-          <div className="text-center text-sm">
-            Ainda não tem uma conta?{" "}
-            <Link href="/register" className="font-medium text-red-600 hover:text-red-800">
-              Registre-se
-            </Link>
-          </div>
-        </CardFooter>
+            <div className="text-center text-sm">
+              Não tem uma conta?{" "}
+              <Link href="/register" className="font-medium text-red-600 hover:text-red-800">
+                Cadastre-se
+              </Link>
+            </div>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   )

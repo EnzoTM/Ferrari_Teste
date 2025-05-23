@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { API_URL, authFetchConfig } from "@/lib/api"
+import { API_URL, API_ENDPOINTS, authFetchConfig } from "@/lib/api"
 import { Plus, Edit, Trash2, Home, CheckCircle2 } from "lucide-react"
 import {
   Dialog,
@@ -55,14 +55,14 @@ export default function AddressesSection() {
     const fetchAddresses = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch(`${API_URL}/api/users/addresses`, authFetchConfig())
+        const response = await fetch(API_ENDPOINTS.addresses, authFetchConfig())
         
         if (!response.ok) {
           throw new Error('Failed to fetch addresses')
         }
         
         const data = await response.json()
-        setAddresses(data.addresses || [])
+        setAddresses(Array.isArray(data.addresses) ? data.addresses : [])
       } catch (error) {
         console.error("Error fetching addresses:", error)
         toast({
@@ -70,6 +70,7 @@ export default function AddressesSection() {
           description: "Não foi possível carregar seus endereços.",
           variant: "destructive"
         })
+        setAddresses([])
       } finally {
         setIsLoading(false)
       }
@@ -84,22 +85,65 @@ export default function AddressesSection() {
     if (!validateAddressForm()) {
       return
     }
-
     try {
       const isEditing = !!currentAddress?._id
       const url = isEditing 
-        ? `${API_URL}/api/users/addresses/${currentAddress?._id}` 
-        : `${API_URL}/api/users/addresses`
+        ? `${API_ENDPOINTS.addresses}/${currentAddress?._id}` 
+        : API_ENDPOINTS.addresses
       
       const method = isEditing ? 'PUT' : 'POST'
+      
+      // Executa a requisição para salvar o endereço
       const response = await fetch(url, authFetchConfig(method, currentAddress))
-
+      
       if (!response.ok) {
         throw new Error(isEditing ? 'Falha ao atualizar endereço' : 'Falha ao adicionar endereço')
       }
-
+      
       const data = await response.json()
-      setAddresses(data.addresses)
+      
+      // Após salvar, buscar a lista atualizada de endereços
+      const refreshResponse = await fetch(API_ENDPOINTS.addresses, authFetchConfig())
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json()
+        if (Array.isArray(refreshData.addresses)) {
+          setAddresses(refreshData.addresses)
+        }
+      } else {
+        // Fallback para atualização local se a busca falhar
+        if (isEditing && currentAddress) {
+          // Atualizando localmente se o servidor não retornar a lista completa
+          const updatedAddresses = addresses.map(addr => 
+            addr._id === currentAddress._id ? {...currentAddress} : addr
+          );
+          
+          // Se o endereço atual foi marcado como padrão, atualizar outros endereços
+          if (currentAddress.isDefault) {
+            updatedAddresses.forEach(addr => {
+              if (addr._id !== currentAddress._id) {
+                addr.isDefault = false;
+              }
+            });
+          }
+          
+          setAddresses(updatedAddresses)
+        } else if (currentAddress) {
+          // Adicionando novo endereço localmente se o servidor não retornar a lista completa
+          const newAddress = {...currentAddress, _id: data._id || Date.now().toString()};
+          
+          // Se o novo endereço for padrão, garantir que outros não sejam
+          if (newAddress.isDefault) {
+            const updatedAddresses = addresses.map(addr => ({
+              ...addr,
+              isDefault: false
+            }));
+            setAddresses([...updatedAddresses, newAddress]);
+          } else {
+            setAddresses([...addresses, newAddress]);
+          }
+        }
+      }
+      
       setIsAddressDialogOpen(false)
       
       toast({
@@ -121,7 +165,7 @@ export default function AddressesSection() {
   const handleDeleteAddress = async (addressId: string) => {
     try {
       const response = await fetch(
-        `${API_URL}/api/users/addresses/${addressId}`,
+        `${API_ENDPOINTS.addresses}/${addressId}`,
         authFetchConfig('DELETE')
       )
 
@@ -130,7 +174,14 @@ export default function AddressesSection() {
       }
 
       const data = await response.json()
-      setAddresses(data.addresses)
+      
+      // Garantir que os endereços sejam atualizados corretamente
+      if (Array.isArray(data.addresses)) {
+        setAddresses(data.addresses)
+      } else {
+        // Remover o endereço localmente se o servidor não retornar a lista completa
+        setAddresses(addresses.filter(addr => addr._id !== addressId))
+      }
       
       toast({
         title: "Endereço removido",
@@ -153,16 +204,24 @@ export default function AddressesSection() {
       if (!address) return
       
       const response = await fetch(
-        `${API_URL}/api/users/addresses/${addressId}`,
+        `${API_ENDPOINTS.addresses}/${addressId}`,
         authFetchConfig('PUT', { ...address, isDefault: true })
       )
-
       if (!response.ok) {
         throw new Error('Failed to set default address')
       }
-
       const data = await response.json()
-      setAddresses(data.addresses)
+      
+      // Garantir que os endereços sejam atualizados corretamente
+      if (Array.isArray(data.addresses)) {
+        setAddresses(data.addresses)
+      } else {
+        // Atualizar os endereços localmente se o servidor não retornar a lista completa
+        setAddresses(addresses.map(addr => ({
+          ...addr,
+          isDefault: addr._id === addressId
+        })))
+      }
       
       toast({
         title: "Endereço padrão atualizado",

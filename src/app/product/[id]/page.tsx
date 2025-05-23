@@ -4,10 +4,9 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/context/cart-context"
-import { API_ENDPOINTS, API_URL } from "@/lib/api"
+import { API_ENDPOINTS } from "@/lib/api"
 import { IProduct } from "@/types/models"
 import { ChevronLeft, Loader2, Minus, Plus, ShoppingCart } from "lucide-react"
 import Link from "next/link"
@@ -21,7 +20,7 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<IProduct | null>(null)
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
-  const [selectedImage, setSelectedImage] = useState("")
+  const [selectedImage, setSelectedImage] = useState(0)
   
   // Buscar dados do produto pelo ID
   useEffect(() => {
@@ -38,11 +37,6 @@ export default function ProductDetailPage() {
         
         const data = await response.json()
         setProduct(data.product)
-        
-        // Seleciona primeira imagem como padrão, se existir
-        if (data.product && data.product.images && data.product.images.length > 0) {
-          setSelectedImage(data.product.images[0])
-        }
       } catch (error) {
         console.error('Erro ao buscar produto:', error)
         toast({
@@ -61,7 +55,7 @@ export default function ProductDetailPage() {
   // Incrementar quantidade
   const incrementQuantity = () => {
     // Limitando a quantidade ao estoque disponível
-    if (product && product.stock && quantity < product.stock) {
+    if (product?.stock && quantity < product.stock) {
       setQuantity(prev => prev + 1)
     } else {
       toast({
@@ -88,7 +82,7 @@ export default function ProductDetailPage() {
       name: product.name,
       price: product.price,
       image: product.images && product.images.length > 0 
-        ? `${API_URL}/public/images/products/${product.images[0]}`
+        ? product.images[0]
         : "/placeholder.svg",
       category: product.type,
       quantity
@@ -144,9 +138,9 @@ export default function ProductDetailPage() {
         {/* Seção de imagens */}
         <div>
           <div className="relative mb-4 aspect-square overflow-hidden rounded-lg border">
-            {selectedImage ? (
+            {product.images && product.images.length > 0 ? (
               <Image
-                src={`${API_URL}/public/images/products/${selectedImage}`}
+                src={product.images[selectedImage]}
                 alt={product.name}
                 fill
                 className="object-contain"
@@ -165,12 +159,12 @@ export default function ProductDetailPage() {
                 <div 
                   key={index}
                   className={`relative aspect-square cursor-pointer overflow-hidden rounded-md border ${
-                    selectedImage === image ? 'border-red-600' : 'border-gray-200'
+                    selectedImage === index ? 'border-red-600' : 'border-gray-200'
                   }`}
-                  onClick={() => setSelectedImage(image)}
+                  onClick={() => setSelectedImage(index)}
                 >
                   <Image
-                    src={`${API_URL}/public/images/products/${image}`}
+                    src={image}
                     alt={`${product.name} - imagem ${index + 1}`}
                     fill
                     className="object-cover"
@@ -192,23 +186,6 @@ export default function ProductDetailPage() {
           <div className="mb-6">
             <p className="text-gray-700">{product.description}</p>
           </div>
-          
-          {/* Exibir tags */}
-          {product.tags && product.tags.length > 0 && (
-            <div className="mb-6">
-              <h3 className="mb-2 font-semibold">Características:</h3>
-              <div className="flex flex-wrap gap-2">
-                {product.tags.map((tag, index) => (
-                  <span 
-                    key={index} 
-                    className="rounded-full bg-gray-100 px-3 py-1 text-sm"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
           
           {/* Informações de estoque */}
           <div className="mb-6">

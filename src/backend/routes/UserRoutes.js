@@ -1,6 +1,5 @@
 const router = require('express').Router();
 const UserController = require('../controllers/UserController');
-
 // Middlewares
 const verifyToken = require('../helpers/verify-token');
 const { imageUpload } = require('../helpers/image-upload');
@@ -10,12 +9,6 @@ router.post('/register', UserController.register);
 router.post('/login', UserController.login);
 router.get('/check', UserController.checkUser);
 router.get('/checkuser', UserController.checkUser); // Add this line for frontend compatibility
-
-// Rotas privadas
-router.get('/:id', verifyToken, UserController.getUserById);
-router.patch('/edit', verifyToken, imageUpload.single('image'), UserController.editUser);
-router.put('/:id', verifyToken, UserController.editUser);
-router.put('/:id/change-password', verifyToken, UserController.changePassword);
 
 // Addresses routes
 router.get('/addresses', verifyToken, UserController.getAddresses);
@@ -40,6 +33,12 @@ router.delete('/cart', verifyToken, UserController.clearCart);
 router.get('/orders', verifyToken, UserController.getOrders);
 router.get('/orders/:orderId', verifyToken, UserController.getOrderById);
 router.post('/orders', verifyToken, UserController.createOrder);
+
+// Rotas privadas - note these are now AFTER the specific routes
+router.get('/:id', verifyToken, UserController.getUserById);
+router.patch('/edit', verifyToken, imageUpload.single('image'), UserController.editUser);
+router.put('/:id', verifyToken, UserController.editUser);
+router.put('/:id/change-password', verifyToken, UserController.changePassword);
 
 // Rotas de administrador
 router.get('/', verifyToken, UserController.getAllUsers);
