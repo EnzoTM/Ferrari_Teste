@@ -3,15 +3,14 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { User, MapPin, CreditCard, LogOut, ShoppingBag } from "lucide-react"
-import AccountForm from "@/components/profile/account-form"
-import AddressesSection from "@/components/profile/addresses-section"
-import PaymentMethodsSection from "@/components/profile/payment-methods-section"
+import { Separator } from "@/components/ui/separator"
+import { UserProfileSection } from "@/components/profile/user-profile-section"
+import AddressSection from "@/components/profile/address-section"
+import PaymentMethodSection from "@/components/profile/payment-methods-section"
 import OrdersSection from "@/components/profile/orders-section"
 import { useToast } from "@/components/ui/use-toast"
 import { API_ENDPOINTS, fetchWithAuth, isAuthenticated, logout } from "@/lib/api"
+import { Button } from "@/components/ui/button"
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -34,19 +33,16 @@ export default function ProfilePage() {
           return
         }
 
-        // Get user data from API
+        // Tentar obter os dados do usuário
         try {
           const userId = localStorage.getItem('userId')
           if (!userId) {
             throw new Error('User ID not found')
           }
           
-          // Tentar obter os dados do usuário
           const response = await fetchWithAuth(`${API_ENDPOINTS.userById(userId)}`)
           
           if (!response.ok) {
-            // Se a resposta não for bem-sucedida, pode ser um problema com o token
-            // ou o usuário não existe mais
             throw new Error('Failed to fetch user data')
           }
           
@@ -101,79 +97,84 @@ export default function ProfilePage() {
   if (!userData) {
     return (
       <div className="container py-8">
-        <Card className="p-6">
-          <div className="text-center">
-            <h2 className="text-xl font-bold mb-4">Erro ao carregar perfil</h2>
-            <p className="mb-6">Não foi possível carregar as informações do seu perfil. Por favor, tente fazer login novamente.</p>
-            <div className="flex justify-center gap-4">
-              <Button variant="outline" onClick={() => router.push('/')}>
-                Voltar para Home
-              </Button>
-              <Button 
-                className="bg-red-600 hover:bg-red-700" 
-                onClick={() => router.push('/login')}
-              >
-                Fazer Login
-              </Button>
-            </div>
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-4">Erro ao carregar perfil</h2>
+          <p className="mb-6">Não foi possível carregar as informações do seu perfil. Por favor, tente fazer login novamente.</p>
+          <div className="flex justify-center gap-4">
+            <Button className="bg-slate-200 hover:bg-slate-300" onClick={() => router.push('/')}>
+              Voltar para Home
+            </Button>
+            <Button 
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => router.push('/login')}
+            >
+              Fazer Login
+            </Button>
           </div>
-        </Card>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="container py-8">
+    <div className="container py-10">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Meu Perfil</h1>
-        <Button variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
+        <Button className="border border-red-600 text-red-600 hover:bg-red-50 hover:text-red-700" variant="outline" onClick={handleLogout}>
           Logout
         </Button>
       </div>
-
-      <Tabs defaultValue="account" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
-          <TabsTrigger value="account" className="flex items-center">
-            <User className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Conta</span>
-          </TabsTrigger>
-          <TabsTrigger value="addresses" className="flex items-center">
-            <MapPin className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Endereços</span>
-          </TabsTrigger>
-          <TabsTrigger value="payment" className="flex items-center">
-            <CreditCard className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Pagamento</span>
-          </TabsTrigger>
-          <TabsTrigger value="orders" className="flex items-center">
-            <ShoppingBag className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Pedidos</span>
-          </TabsTrigger>
+      
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="mb-8 grid w-full grid-cols-4">
+          <TabsTrigger value="profile">Perfil</TabsTrigger>
+          <TabsTrigger value="address">Endereço</TabsTrigger>
+          <TabsTrigger value="payment">Pagamento</TabsTrigger>
+          <TabsTrigger value="orders">Pedidos</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="account">
-          <Card className="p-6">
-            <AccountForm userData={userData} />
-          </Card>
+        
+        <TabsContent value="profile" className="space-y-6">
+          <div className="space-y-0.5">
+            <h2 className="text-2xl font-bold">Informações Pessoais</h2>
+            <p className="text-muted-foreground">
+              Gerencie suas informações pessoais e preferências
+            </p>
+          </div>
+          <Separator />
+          <UserProfileSection />
         </TabsContent>
         
-        <TabsContent value="addresses">
-          <Card className="p-6">
-            <AddressesSection />
-          </Card>
+        <TabsContent value="address" className="space-y-6">
+          <div className="space-y-0.5">
+            <h2 className="text-2xl font-bold">Meu Endereço</h2>
+            <p className="text-muted-foreground">
+              Gerencie seu endereço de entrega
+            </p>
+          </div>
+          <Separator />
+          <AddressSection />
         </TabsContent>
         
-        <TabsContent value="payment">
-          <Card className="p-6">
-            <PaymentMethodsSection />
-          </Card>
+        <TabsContent value="payment" className="space-y-6">
+          <div className="space-y-0.5">
+            <h2 className="text-2xl font-bold">Método de Pagamento</h2>
+            <p className="text-muted-foreground">
+              Gerencie seu método de pagamento para compras
+            </p>
+          </div>
+          <Separator />
+          <PaymentMethodSection />
         </TabsContent>
         
-        <TabsContent value="orders">
-          <Card className="p-6">
-            <OrdersSection />
-          </Card>
+        <TabsContent value="orders" className="space-y-6">
+          <div className="space-y-0.5">
+            <h2 className="text-2xl font-bold">Meus Pedidos</h2>
+            <p className="text-muted-foreground">
+              Visualize e acompanhe o status dos seus pedidos
+            </p>
+          </div>
+          <Separator />
+          <OrdersSection />
         </TabsContent>
       </Tabs>
     </div>

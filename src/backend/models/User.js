@@ -35,13 +35,13 @@ const UserSchema = new Schema(
       type: Boolean,
       default: false
     },
-    addresses: {
-      type: [AddressSchema],
-      default: []
+    address: {
+      type: AddressSchema,
+      default: null
     },
-    paymentMethods: {
-      type: [PaymentMethodSchema],
-      default: []
+    paymentMethod: {
+      type: PaymentMethodSchema,
+      default: null
     },
     cart: [{
       product: {

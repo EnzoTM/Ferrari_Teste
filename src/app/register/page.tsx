@@ -75,6 +75,7 @@ export default function RegisterPage() {
     try {
       setIsLoading(true)
 
+      // Improved error handling for fetch
       const response = await fetch(API_ENDPOINTS.register, {
         method: "POST",
         headers: {
@@ -87,7 +88,14 @@ export default function RegisterPage() {
           cpf: formData.cpf,
           password: formData.password,
         }),
-      })
+      }).catch(error => {
+        console.error("Network error during fetch:", error);
+        throw new Error("Erro de conexão com o servidor. Verifique sua conexão ou tente novamente mais tarde.");
+      });
+
+      if (!response) {
+        throw new Error("Não foi possível conectar ao servidor");
+      }
 
       const data = await response.json()
 

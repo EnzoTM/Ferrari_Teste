@@ -49,29 +49,37 @@ export default function Home() {
       try {
         setIsLoading(true)
         const response = await fetch(API_ENDPOINTS.featuredProducts)
-        
-        if (!response.ok) {
-          throw new Error('Falha ao buscar produtos em destaque')
+          .catch(error => {
+            console.error("Network error during fetch:", error);
+            throw new Error("Erro de conexão com o servidor. Verifique sua conexão de internet.");
+          });
+
+        if (!response) {
+          throw new Error("Não foi possível conectar ao servidor");
         }
         
-        const data = await response.json()
-        setFeaturedProducts(data.products || [])
+        if (!response.ok) {
+          throw new Error('Falha ao buscar produtos em destaque');
+        }
+        
+        const data = await response.json();
+        setFeaturedProducts(data.products || []);
       } catch (error) {
-        console.error("Erro ao buscar produtos em destaque:", error)
+        console.error("Erro ao buscar produtos em destaque:", error);
         toast({
           title: "Erro",
-          description: "Não foi possível carregar os produtos em destaque.",
+          description: error instanceof Error ? error.message : "Não foi possível carregar os produtos em destaque.",
           variant: "destructive"
-        })
+        });
         
         // Fallback para produtos demo em caso de erro
-        setFeaturedProducts([])
+        setFeaturedProducts([]);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
-
-    fetchFeaturedProducts()
+    };
+    
+    fetchFeaturedProducts();
   }, [toast])
 
   const nextSlide = () => {

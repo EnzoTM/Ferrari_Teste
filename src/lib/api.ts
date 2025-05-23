@@ -14,9 +14,9 @@ export const API_ENDPOINTS = {
   users: `${API_URL}/api/users`,
   userById: (id: string) => `${API_URL}/api/users/${id}`,
   
-  // Add endpoints for addresses, payment methods, and orders
-  addresses: `${API_URL}/api/users/addresses`,
-  paymentMethods: `${API_URL}/api/users/payment-methods`,
+  // Address and payment method (single approach)
+  address: `${API_URL}/api/users/address`,
+  paymentMethod: `${API_URL}/api/users/payment-method`,
   
   // Produtos
   products: `${API_URL}/api/products`,

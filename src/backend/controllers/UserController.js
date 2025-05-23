@@ -272,8 +272,8 @@ module.exports = class UserController {
     }
   }
 
-  // Get all addresses
-  static async getAddresses(req, res) {
+  // Get address
+  static async getAddress(req, res) {
     try {
       const token = getToken(req);
       const user = await getUserByToken(token);
@@ -282,14 +282,14 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      res.status(200).json({ addresses: user.addresses });
+      res.status(200).json({ address: user.address });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
   }
 
-  // Add a new address
-  static async addAddress(req, res) {
+  // Add or update address
+  static async updateAddress(req, res) {
     try {
       const token = getToken(req);
       const user = await getUserByToken(token);
@@ -298,7 +298,7 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      const { street, number, complement, neighborhood, city, state, zipCode, isDefault } = req.body;
+      const { street, number, complement, neighborhood, city, state, zipCode } = req.body;
 
       // Validações
       if (!street) {
@@ -320,131 +320,30 @@ module.exports = class UserController {
         return res.status(422).json({ message: 'O CEP é obrigatório' });
       }
 
-      // Create new address
-      const newAddress = {
+      // Create or update address
+      user.address = {
         street,
         number,
-        complement,
+        complement: complement || '',
         neighborhood,
         city,
         state,
-        zipCode,
-        isDefault: isDefault || false
+        zipCode
       };
-
-      // If this is the default address, set all others to non-default
-      if (newAddress.isDefault) {
-        user.addresses.forEach(address => {
-          address.isDefault = false;
-        });
-      }
-
-      // If this is the first address, set it as default
-      if (user.addresses.length === 0) {
-        newAddress.isDefault = true;
-      }
-
-      user.addresses.push(newAddress);
-      await user.save();
-
-      res.status(201).json({ 
-        message: 'Endereço adicionado com sucesso',
-        address: user.addresses[user.addresses.length - 1]
-      });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  }
-
-  // Update an address
-  static async updateAddress(req, res) {
-    try {
-      const token = getToken(req);
-      const user = await getUserByToken(token);
-      const { addressId } = req.params;
-
-      if (!user) {
-        return res.status(401).json({ message: 'Acesso negado' });
-      }
-
-      const { street, number, complement, neighborhood, city, state, zipCode, isDefault } = req.body;
-
-      // Find address in user's addresses
-      const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === addressId);
-
-      if (addressIndex === -1) {
-        return res.status(404).json({ message: 'Endereço não encontrado' });
-      }
-
-      // Update address fields if provided
-      if (street) user.addresses[addressIndex].street = street;
-      if (number) user.addresses[addressIndex].number = number;
-      if (complement !== undefined) user.addresses[addressIndex].complement = complement;
-      if (neighborhood) user.addresses[addressIndex].neighborhood = neighborhood;
-      if (city) user.addresses[addressIndex].city = city;
-      if (state) user.addresses[addressIndex].state = state;
-      if (zipCode) user.addresses[addressIndex].zipCode = zipCode;
-      
-      // Handle default address setting
-      if (isDefault) {
-        // Set all addresses to non-default
-        user.addresses.forEach(addr => {
-          addr.isDefault = false;
-        });
-        // Set this address as default
-        user.addresses[addressIndex].isDefault = true;
-      }
 
       await user.save();
 
       res.status(200).json({ 
         message: 'Endereço atualizado com sucesso',
-        address: user.addresses[addressIndex]
+        address: user.address
       });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
   }
 
-  // Delete an address
-  static async deleteAddress(req, res) {
-    try {
-      const token = getToken(req);
-      const user = await getUserByToken(token);
-      const { addressId } = req.params;
-
-      if (!user) {
-        return res.status(401).json({ message: 'Acesso negado' });
-      }
-
-      // Find address index
-      const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === addressId);
-
-      if (addressIndex === -1) {
-        return res.status(404).json({ message: 'Endereço não encontrado' });
-      }
-
-      // Check if it's the default address
-      const isDefault = user.addresses[addressIndex].isDefault;
-
-      // Remove the address
-      user.addresses.splice(addressIndex, 1);
-
-      // If this was the default address and there are other addresses, set a new default
-      if (isDefault && user.addresses.length > 0) {
-        user.addresses[0].isDefault = true;
-      }
-
-      await user.save();
-
-      res.status(200).json({ message: 'Endereço removido com sucesso' });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  }
-
-  // Get all payment methods
-  static async getPaymentMethods(req, res) {
+  // Get payment method
+  static async getPaymentMethod(req, res) {
     try {
       const token = getToken(req);
       const user = await getUserByToken(token);
@@ -453,172 +352,70 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      res.status(200).json({ paymentMethods: user.paymentMethods });
+      res.status(200).json({ paymentMethod: user.paymentMethod });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
   }
 
-  // Add a new payment method
-  static async addPaymentMethod(req, res) {
-    try {
-      const token = getToken(req);
-      const user = await getUserByToken(token);
-
-      if (!user) {
-        return res.status(401).json({ message: 'Acesso negado' });
-      }
-
-      const { type, cardNumber, cardHolderName, expirationDate, cvv, isDefault } = req.body;
-
-      // Validations
-      if (!type) {
-        return res.status(422).json({ message: 'O tipo de pagamento é obrigatório' });
-      }
-
-      if (!['credit', 'debit', 'pix', 'bankslip'].includes(type)) {
-        return res.status(422).json({ message: 'Tipo de pagamento inválido' });
-      }
-
-      // Validate card information for credit/debit cards
-      if ((type === 'credit' || type === 'debit') && 
-          (!cardNumber || !cardHolderName || !expirationDate || !cvv)) {
-        return res.status(422).json({ 
-          message: 'Para cartões, todos os campos de cartão são obrigatórios' 
-        });
-      }
-
-      // Create new payment method
-      const newPaymentMethod = {
-        type,
-        isDefault: isDefault || false
-      };
-
-      // Add card details if applicable
-      if (type === 'credit' || type === 'debit') {
-        newPaymentMethod.cardNumber = cardNumber;
-        newPaymentMethod.cardHolderName = cardHolderName;
-        newPaymentMethod.expirationDate = expirationDate;
-        newPaymentMethod.cvv = cvv;
-      }
-
-      // If this is the default payment method, set all others to non-default
-      if (newPaymentMethod.isDefault) {
-        user.paymentMethods.forEach(method => {
-          method.isDefault = false;
-        });
-      }
-
-      // If this is the first payment method, set it as default
-      if (user.paymentMethods.length === 0) {
-        newPaymentMethod.isDefault = true;
-      }
-
-      user.paymentMethods.push(newPaymentMethod);
-      await user.save();
-
-      res.status(201).json({
-        message: 'Método de pagamento adicionado com sucesso',
-        paymentMethod: user.paymentMethods[user.paymentMethods.length - 1]
-      });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  }
-
-  // Update a payment method
+  // Add or update payment method
   static async updatePaymentMethod(req, res) {
     try {
       const token = getToken(req);
       const user = await getUserByToken(token);
-      const { paymentId } = req.params;
 
       if (!user) {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      const { type, cardNumber, cardHolderName, expirationDate, cvv, isDefault } = req.body;
+      const { type, cardNumber, cardHolderName, expirationDate, cvv } = req.body;
 
-      // Find payment method in user's payment methods
-      const paymentIndex = user.paymentMethods.findIndex(method => method._id.toString() === paymentId);
-
-      if (paymentIndex === -1) {
-        return res.status(404).json({ message: 'Método de pagamento não encontrado' });
+      // Validations
+      if (!type) {
+        return res.status(422).json({ message: 'O tipo de cartão é obrigatório' });
       }
 
-      // Update payment method fields if provided
-      if (type) {
-        // Validate payment type
-        if (!['credit', 'debit', 'pix', 'bankslip'].includes(type)) {
-          return res.status(422).json({ message: 'Tipo de pagamento inválido' });
-        }
-        user.paymentMethods[paymentIndex].type = type;
+      if (!['credit', 'debit'].includes(type)) {
+        return res.status(422).json({ message: 'Tipo de cartão inválido' });
       }
 
-      // Update card details if applicable
-      if (user.paymentMethods[paymentIndex].type === 'credit' || 
-          user.paymentMethods[paymentIndex].type === 'debit') {
-        if (cardNumber) user.paymentMethods[paymentIndex].cardNumber = cardNumber;
-        if (cardHolderName) user.paymentMethods[paymentIndex].cardHolderName = cardHolderName;
-        if (expirationDate) user.paymentMethods[paymentIndex].expirationDate = expirationDate;
-        if (cvv) user.paymentMethods[paymentIndex].cvv = cvv;
+      if (!cardNumber) {
+        return res.status(422).json({ message: 'O número do cartão é obrigatório' });
       }
       
-      // Handle default payment method setting
-      if (isDefault) {
-        // Set all payment methods to non-default
-        user.paymentMethods.forEach(method => {
-          method.isDefault = false;
-        });
-        // Set this payment method as default
-        user.paymentMethods[paymentIndex].isDefault = true;
+      if (!cardHolderName) {
+        return res.status(422).json({ message: 'O nome no cartão é obrigatório' });
+      }
+      
+      if (!expirationDate) {
+        return res.status(422).json({ message: 'A data de validade é obrigatória' });
+      }
+      
+      if (!cvv) {
+        return res.status(422).json({ message: 'O código de segurança é obrigatório' });
       }
 
+      // Create or update payment method
+      user.paymentMethod = {
+        type,
+        cardNumber,
+        cardHolderName,
+        expirationDate,
+        cvv
+      };
+
       await user.save();
+
+      // Return payment method without CVV for security
+      const securePaymentMethod = {
+        ...user.paymentMethod.toObject(),
+        cvv: undefined
+      };
 
       res.status(200).json({
         message: 'Método de pagamento atualizado com sucesso',
-        paymentMethod: user.paymentMethods[paymentIndex]
+        paymentMethod: securePaymentMethod
       });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  }
-
-  // Delete a payment method
-  static async deletePaymentMethod(req, res) {
-    try {
-      const token = getToken(req);
-      const user = await getUserByToken(token);
-      const { paymentId } = req.params;
-
-      if (!user) {
-        return res.status(401).json({ message: 'Acesso negado' });
-      }
-
-      // Find payment method index
-      const paymentIndex = user.paymentMethods.findIndex(
-        method => method._id.toString() === paymentId
-      );
-
-      if (paymentIndex === -1) {
-        return res.status(404).json({ message: 'Método de pagamento não encontrado' });
-      }
-
-      // Check if it's the default payment method
-      const isDefault = user.paymentMethods[paymentIndex].isDefault;
-
-      // Remove the payment method
-      user.paymentMethods.splice(paymentIndex, 1);
-
-      // If this was the default payment method and there are other methods, set a new default
-      if (isDefault && user.paymentMethods.length > 0) {
-        user.paymentMethods[0].isDefault = true;
-      }
-
-      await user.save();
-
-      res.status(200).json({ message: 'Método de pagamento removido com sucesso' });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -789,7 +586,7 @@ module.exports = class UserController {
     }
   }
 
-  // Create an order from cart items
+  // Create an order
   static async createOrder(req, res) {
     try {
       const token = getToken(req);
@@ -799,23 +596,19 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      const { addressId, paymentMethodId } = req.body;
-
       // Validate if user has items in cart
       if (!user.cart || user.cart.length === 0) {
         return res.status(422).json({ message: 'Carrinho vazio. Adicione produtos antes de finalizar o pedido.' });
       }
 
       // Validate address
-      const address = user.addresses.find(addr => addr._id.toString() === addressId);
-      if (!address) {
-        return res.status(422).json({ message: 'Endereço não encontrado' });
+      if (!user.address) {
+        return res.status(422).json({ message: 'Você precisa cadastrar um endereço antes de finalizar o pedido.' });
       }
 
       // Validate payment method
-      const paymentMethod = user.paymentMethods.find(method => method._id.toString() === paymentMethodId);
-      if (!paymentMethod) {
-        return res.status(422).json({ message: 'Método de pagamento não encontrado' });
+      if (!user.paymentMethod) {
+        return res.status(422).json({ message: 'Você precisa cadastrar um método de pagamento antes de finalizar o pedido.' });
       }
 
       // Populate product details for order creation
@@ -838,8 +631,16 @@ module.exports = class UserController {
         products: orderProducts,
         total,
         status: 'pending',
-        paymentMethod: paymentMethod._id,
-        shippingAddress: address._id,
+        paymentType: user.paymentMethod.type,
+        shippingAddress: {
+          street: user.address.street,
+          number: user.address.number,
+          complement: user.address.complement,
+          neighborhood: user.address.neighborhood,
+          city: user.address.city,
+          state: user.address.state,
+          zipCode: user.address.zipCode
+        }
       };
 
       user.orders.push(newOrder);

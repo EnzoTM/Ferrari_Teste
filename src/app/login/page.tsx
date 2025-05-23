@@ -34,16 +34,25 @@ export default function LoginPage() {
     try {
       setIsLoading(true)
       
+      // Improved error handling for fetch
       const response = await fetch(API_ENDPOINTS.login, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
-      })
+      }).catch(error => {
+        console.error("Network error during fetch:", error);
+        // Specific handling for network errors
+        throw new Error("Erro de conexão com o servidor. Verifique sua conexão ou tente novamente mais tarde.");
+      });
+      
+      if (!response) {
+        throw new Error("Não foi possível conectar ao servidor");
+      }
 
-      const data = await response.json()
-
+      const data = await response.json();
+      
       if (response.ok) {
         // Armazenar token e informações do usuário no localStorage
         localStorage.setItem('token', data.token);

@@ -4,28 +4,24 @@ const { Schema } = mongoose;
 const PaymentMethodSchema = new Schema({
   type: {
     type: String,
-    enum: ['credit', 'debit', 'pix', 'bankslip'],
+    enum: ['credit', 'debit'],
     required: true
   },
   cardNumber: {
     type: String,
-    // Only required for credit/debit card payments
+    required: true
   },
   cardHolderName: {
     type: String,
-    // Only required for credit/debit card payments
+    required: true
   },
   expirationDate: {
     type: String,
-    // Only required for credit/debit card payments
+    required: true
   },
   cvv: {
     type: String,
-    // Only required for credit/debit card payments
-  },
-  isDefault: {
-    type: Boolean,
-    default: false
+    required: true
   }
 }, { timestamps: true });
 

@@ -1,62 +1,54 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface PaymentMethod {
-  id: string
-  cardName: string
+  type: 'credit' | 'debit'
   cardNumber: string
-  expiryDate: string
-  isDefault: boolean
-  cardType: string
+  cardHolderName: string
+  expirationDate: string
+  cvv: string
 }
 
 interface PaymentMethodFormProps {
   paymentMethod: PaymentMethod | null
   onSave: (paymentMethod: PaymentMethod) => void
   onCancel: () => void
-  paymentMethods: PaymentMethod[]
 }
 
-export default function PaymentMethodForm({ paymentMethod, onSave, onCancel, paymentMethods }: PaymentMethodFormProps) {
-  const [formData, setFormData] = useState<Omit<PaymentMethod, "id"> & { id?: string }>({
-    cardName: "",
-    cardNumber: "",
-    expiryDate: "",
-    isDefault: false,
-    cardType: "visa",
+export default function PaymentMethodForm({ paymentMethod, onSave, onCancel }: PaymentMethodFormProps) {
+  const [formData, setFormData] = useState<PaymentMethod>({
+    type: 'credit',
+    cardNumber: '',
+    cardHolderName: '',
+    expirationDate: '',
+    cvv: ''
   })
   const [cardNumberInput, setCardNumberInput] = useState("")
   const [expiryInput, setExpiryInput] = useState("")
-  const [cvv, setCvv] = useState("")
   const [errors, setErrors] = useState({
     cardNumber: "",
-    expiryDate: "",
+    expirationDate: "",
     cvv: "",
   })
 
   // If editing, populate form with payment method data
   useEffect(() => {
     if (paymentMethod) {
-      setFormData(paymentMethod)
+      setFormData({
+        ...paymentMethod,
+        cvv: '' // Clear CVV for security when editing
+      })
       // For editing, we don't show the actual card number, just the masked version
       setCardNumberInput("")
-      setExpiryInput(paymentMethod.expiryDate)
-    } else {
-      // If this is the first payment method, make it default
-      setFormData((prev) => ({
-        ...prev,
-        isDefault: paymentMethods.length === 0,
-      }))
+      setExpiryInput(paymentMethod.expirationDate)
     }
-  }, [paymentMethod, paymentMethods])
+  }, [paymentMethod])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -64,7 +56,7 @@ export default function PaymentMethodForm({ paymentMethod, onSave, onCancel, pay
   }
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Aceitar apenas números
+    // Accept only numbers
     let value = e.target.value.replace(/\D/g, "")
 
     // Format with spaces every 4 digits
@@ -78,7 +70,7 @@ export default function PaymentMethodForm({ paymentMethod, onSave, onCancel, pay
     const digits = value.replace(/\s/g, "")
     setFormData((prev) => ({
       ...prev,
-      cardNumber: digits.length > 0 ? `•••• •••• •••• ${digits.slice(-4)}` : "",
+      cardNumber: digits
     }))
 
     // Validate
@@ -90,7 +82,7 @@ export default function PaymentMethodForm({ paymentMethod, onSave, onCancel, pay
   }
 
   const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Aceitar apenas números
+    // Accept only numbers
     let value = e.target.value.replace(/\D/g, "")
 
     // Format as MM/YY
@@ -103,20 +95,20 @@ export default function PaymentMethodForm({ paymentMethod, onSave, onCancel, pay
     }
 
     setExpiryInput(value)
-    setFormData((prev) => ({ ...prev, expiryDate: value }))
+    setFormData((prev) => ({ ...prev, expirationDate: value }))
 
     // Validate
     if (value.length > 0 && value.length < 5) {
-      setErrors((prev) => ({ ...prev, expiryDate: "Expiry date must be in MM/YY format" }))
+      setErrors((prev) => ({ ...prev, expirationDate: "Expiry date must be in MM/YY format" }))
     } else {
-      setErrors((prev) => ({ ...prev, expiryDate: "" }))
+      setErrors((prev) => ({ ...prev, expirationDate: "" }))
     }
   }
 
   const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Aceitar apenas números
+    // Accept only numbers
     const value = e.target.value.replace(/\D/g, "").slice(0, 3)
-    setCvv(value)
+    setFormData((prev) => ({ ...prev, cvv: value }))
 
     // Validate
     if (value.length > 0 && value.length < 3) {
@@ -127,11 +119,7 @@ export default function PaymentMethodForm({ paymentMethod, onSave, onCancel, pay
   }
 
   const handleCardTypeChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, cardType: value }))
-  }
-
-  const handleSwitchChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, isDefault: checked }))
+    setFormData((prev) => ({ ...prev, type: value as 'credit' | 'debit' }))
   }
 
   const validateForm = () => {
@@ -139,18 +127,18 @@ export default function PaymentMethodForm({ paymentMethod, onSave, onCancel, pay
     const newErrors = { ...errors }
 
     // When editing, we might not change the card number
-    if (!paymentMethod && (formData.cardNumber.length === 0 || cardNumberInput.replace(/\s/g, "").length < 16)) {
+    if (!paymentMethod && (formData.cardNumber.length === 0 || formData.cardNumber.length < 16)) {
       newErrors.cardNumber = "Valid card number is required"
       valid = false
     }
 
-    if (formData.expiryDate.length === 0 || !formData.expiryDate.includes("/")) {
-      newErrors.expiryDate = "Valid expiry date is required"
+    if (formData.expirationDate.length === 0 || !formData.expirationDate.includes("/")) {
+      newErrors.expirationDate = "Valid expiry date is required"
       valid = false
     }
 
     // CVV is only required for new cards
-    if (!paymentMethod && (cvv.length === 0 || cvv.length < 3)) {
+    if (!paymentMethod && (formData.cvv.length === 0 || formData.cvv.length < 3)) {
       newErrors.cvv = "Valid CVV is required"
       valid = false
     }
@@ -163,34 +151,32 @@ export default function PaymentMethodForm({ paymentMethod, onSave, onCancel, pay
     e.preventDefault()
 
     if (validateForm()) {
-      onSave(formData as PaymentMethod)
+      onSave(formData)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="cardType">Card Type</Label>
-        <Select value={formData.cardType} onValueChange={handleCardTypeChange}>
+        <Label htmlFor="type">Card Type</Label>
+        <Select value={formData.type} onValueChange={handleCardTypeChange}>
           <SelectTrigger>
             <SelectValue placeholder="Select card type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="visa">Visa</SelectItem>
-            <SelectItem value="mastercard">Mastercard</SelectItem>
-            <SelectItem value="amex">American Express</SelectItem>
-            <SelectItem value="discover">Discover</SelectItem>
+            <SelectItem value="credit">Credit Card</SelectItem>
+            <SelectItem value="debit">Debit Card</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="cardName">Name on Card</Label>
+        <Label htmlFor="cardHolderName">Name on Card</Label>
         <Input
-          id="cardName"
-          name="cardName"
+          id="cardHolderName"
+          name="cardHolderName"
           placeholder="John Doe"
-          value={formData.cardName}
+          value={formData.cardHolderName}
           onChange={handleInputChange}
           required
         />
@@ -205,24 +191,24 @@ export default function PaymentMethodForm({ paymentMethod, onSave, onCancel, pay
           onChange={handleCardNumberChange}
           required={!paymentMethod}
           maxLength={19} // 16 digits + 3 spaces
-          inputMode="numeric" // Mostra teclado numérico em dispositivos móveis
+          inputMode="numeric" // Show numeric keyboard on mobile devices
         />
         {errors.cardNumber && <p className="text-sm text-red-600">{errors.cardNumber}</p>}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="expiryDate">Expiry Date</Label>
+          <Label htmlFor="expirationDate">Expiry Date</Label>
           <Input
-            id="expiryDate"
+            id="expirationDate"
             placeholder="MM/YY"
             value={expiryInput}
             onChange={handleExpiryChange}
             required
             maxLength={5} // MM/YY
-            inputMode="numeric" // Mostra teclado numérico em dispositivos móveis
+            inputMode="numeric" // Show numeric keyboard on mobile devices
           />
-          {errors.expiryDate && <p className="text-sm text-red-600">{errors.expiryDate}</p>}
+          {errors.expirationDate && <p className="text-sm text-red-600">{errors.expirationDate}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="cvv">CVV</Label>
@@ -230,24 +216,14 @@ export default function PaymentMethodForm({ paymentMethod, onSave, onCancel, pay
             id="cvv"
             type="password"
             placeholder="123"
-            value={cvv}
+            value={formData.cvv}
             onChange={handleCvvChange}
             required={!paymentMethod}
             maxLength={3}
-            inputMode="numeric" // Mostra teclado numérico em dispositivos móveis
+            inputMode="numeric" // Show numeric keyboard on mobile devices
           />
           {errors.cvv && <p className="text-sm text-red-600">{errors.cvv}</p>}
         </div>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="isDefault"
-          checked={formData.isDefault}
-          onCheckedChange={handleSwitchChange}
-          disabled={paymentMethods.length === 0} // If this is the first payment method, it must be default
-        />
-        <Label htmlFor="isDefault">Set as default payment method</Label>
       </div>
 
       <div className="flex justify-end space-x-4 pt-4">

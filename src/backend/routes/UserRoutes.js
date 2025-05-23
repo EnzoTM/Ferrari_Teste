@@ -8,19 +8,15 @@ const { imageUpload } = require('../helpers/image-upload');
 router.post('/register', UserController.register);
 router.post('/login', UserController.login);
 router.get('/check', UserController.checkUser);
-router.get('/checkuser', UserController.checkUser); // Add this line for frontend compatibility
+router.get('/checkuser', UserController.checkUser); // For frontend compatibility
 
-// Addresses routes
-router.get('/addresses', verifyToken, UserController.getAddresses);
-router.post('/addresses', verifyToken, UserController.addAddress);
-router.put('/addresses/:addressId', verifyToken, UserController.updateAddress);
-router.delete('/addresses/:addressId', verifyToken, UserController.deleteAddress);
+// Single address routes
+router.get('/address', verifyToken, UserController.getAddress);
+router.put('/address', verifyToken, UserController.updateAddress);
 
-// Payment methods routes
-router.get('/payment-methods', verifyToken, UserController.getPaymentMethods);
-router.post('/payment-methods', verifyToken, UserController.addPaymentMethod);
-router.put('/payment-methods/:paymentId', verifyToken, UserController.updatePaymentMethod);
-router.delete('/payment-methods/:paymentId', verifyToken, UserController.deletePaymentMethod);
+// Single payment method routes
+router.get('/payment-method', verifyToken, UserController.getPaymentMethod);
+router.put('/payment-method', verifyToken, UserController.updatePaymentMethod);
 
 // Cart routes
 router.get('/cart', verifyToken, UserController.getCart);
