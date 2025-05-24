@@ -110,7 +110,7 @@ export default function OrdersSection() {
           </p>
           <Button 
             className="mt-4 bg-red-600 hover:bg-red-700"
-            onClick={() => router.push('/cars')}
+            onClick={() => router.push('/')}
           >
             Explorar Produtos
           </Button>

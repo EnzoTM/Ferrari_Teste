@@ -284,7 +284,7 @@ export default function OrderSuccessPage() {
             <Button 
               variant="outline" 
               className="w-full" 
-              onClick={() => router.push('/cars')}
+              onClick={() => router.push('/')}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Continuar Comprando

@@ -96,7 +96,7 @@ export default function CartPage() {
         <h1 className="mb-2 text-2xl font-bold">Seu carrinho está vazio</h1>
         <p className="mb-6 text-gray-600">Adicione alguns produtos incríveis da Ferrari!</p>
         <Button className="bg-red-600 hover:bg-red-700" asChild>
-          <Link href="/cars">Explorar Produtos</Link>
+          <Link href="/">Explorar Produtos</Link>
         </Button>
       </div>
     )
@@ -227,7 +227,7 @@ export default function CartPage() {
               </Button>
               
               <Button variant="outline" className="mt-2 w-full" asChild>
-                <Link href="/cars">Continuar Comprando</Link>
+                <Link href="/">Continuar Comprando</Link>
               </Button>
             </CardContent>
           </Card>

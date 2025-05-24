@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/context/cart-context"
-import { API_ENDPOINTS, API_URL } from "@/lib/api"
+import { API_URL } from "@/lib/api"
 import { IProduct } from "@/types/models"
 import { ChevronLeft, Loader2, Minus, Plus, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 
-export default function ProductDetailPage() {
-  const params = useParams<{ id: string }>()
+export default function ProductDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const { toast } = useToast()
   const { addItem } = useCart()
@@ -39,219 +39,192 @@ export default function ProductDetailPage() {
     // Otherwise, it's just a filename, construct the full URL
     return `${API_URL}/public/images/products/${imageName}`
   }
-  
-  // Buscar dados do produto pelo ID
+
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!params.id) return
-      
       try {
         setLoading(true)
-        const response = await fetch(API_ENDPOINTS.product(params.id))
+        const apiUrl = API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+        const response = await fetch(`${apiUrl}/api/products/${id}`)
         
         if (!response.ok) {
-          throw new Error('Produto não encontrado')
+          throw new Error(`Failed to fetch product: ${response.status}`)
+        }
+
+        const contentType = response.headers.get("content-type")
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Server returned invalid response format")
+        }
+
+        const data = await response.json()
+        
+        if (!data.product) {
+          throw new Error("Product not found")
         }
         
-        const data = await response.json()
         setProduct(data.product)
       } catch (error) {
-        console.error('Erro ao buscar produto:', error)
+        console.error("Error fetching product:", error)
         toast({
           title: "Erro",
-          description: "Não foi possível carregar o produto. Tente novamente mais tarde.",
+          description: error instanceof Error ? error.message : "Não foi possível carregar o produto",
           variant: "destructive"
         })
+        router.push('/')
       } finally {
         setLoading(false)
       }
     }
-    
-    fetchProduct()
-  }, [params.id, toast])
-  
-  // Incrementar quantidade
-  const incrementQuantity = () => {
-    // Limitando a quantidade ao estoque disponível
-    if (product?.stock && quantity < product.stock) {
+
+    if (id) {
+      fetchProduct()
+    }
+  }, [id, router, toast])
+
+  const handleAddToCart = () => {
+    if (!product) return
+
+    addItem({
+      id: product._id!,
+      name: product.name,
+      price: product.price,
+      image: product.images?.[0] || '',
+      quantity: quantity
+    })
+
+    toast({
+      title: "Produto adicionado",
+      description: `${quantity}x ${product.name} adicionado ao carrinho`,
+    })
+  }
+
+  const increaseQuantity = () => {
+    if (product && quantity < (product.stock || 0)) {
       setQuantity(prev => prev + 1)
-    } else {
-      toast({
-        title: "Limite de estoque",
-        description: "Quantidade máxima disponível em estoque.",
-        variant: "destructive"
-      })
     }
   }
-  
-  // Decrementar quantidade
-  const decrementQuantity = () => {
+
+  const decreaseQuantity = () => {
     if (quantity > 1) {
       setQuantity(prev => prev - 1)
     }
   }
-  
-  // Adicionar ao carrinho
-  const handleAddToCart = () => {
-    if (!product) return
-    
-    addItem({
-      id: product._id || "",
-      name: product.name,
-      price: product.price,
-      image: product.images && product.images.length > 0 
-        ? getImageUrl(product.images[0])
-        : "/placeholder.svg",
-      category: product.type,
-      quantity
-    })
-    
-    toast({
-      title: "Produto adicionado ao carrinho",
-      description: `${quantity}x ${product.name} foi adicionado ao seu carrinho.`,
-    })
-  }
-  
-  // Se estiver carregando, mostrar indicador
+
   if (loading) {
     return (
-      <div className="container flex h-screen items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-red-600" />
       </div>
     )
   }
-  
-  // Se produto não for encontrado
+
   if (!product) {
     return (
       <div className="container py-8">
-        <div className="flex flex-col items-center justify-center space-y-4">
-          <h1 className="text-2xl font-bold">Produto não encontrado</h1>
-          <p>O produto que você está procurando não existe ou não está disponível.</p>
-          <Button 
-            variant="outline" 
-            onClick={() => router.back()}
-            className="mt-4"
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Produto não encontrado</h1>
+          <Link href="/">
+            <Button>
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Voltar à página inicial
+            </Button>
+          </Link>
         </div>
       </div>
     )
   }
-  
+
   return (
     <div className="container py-8">
       <div className="mb-6">
-        <Button variant="outline" asChild>
-          <Link href={`/${product.type === 'car' ? 'cars' : product.type === 'formula1' ? 'formula1' : 'helmets'}`}>
+        <Button variant="outline" asChild className="mb-4">
+          <Link href="/">
             <ChevronLeft className="mr-2 h-4 w-4" />
             Voltar
           </Link>
         </Button>
       </div>
-      
-      <div className="grid gap-8 lg:grid-cols-2">
-        {/* Seção de imagens */}
-        <div>
-          <div className="relative mb-4 aspect-square overflow-hidden rounded-lg border">
-            {product.images && product.images.length > 0 ? (
-              <Image
-                src={getImageUrl(product.images[selectedImage])}
-                alt={product.name}
-                fill
-                className="object-contain"
-                onError={(e) => {
-                  e.currentTarget.src = "/placeholder.svg"
-                }}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center bg-gray-100">
-                <span className="text-gray-400">Sem imagem disponível</span>
-              </div>
-            )}
+
+      <div className="grid gap-8 md:grid-cols-2">
+        {/* Images */}
+        <div className="space-y-4">
+          {/* Main image */}
+          <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
+            <Image
+              src={getImageUrl(product.images?.[selectedImage] || '')}
+              alt={product.name}
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
-          
-          {/* Miniaturas das imagens */}
+
+          {/* Thumbnail images */}
           {product.images && product.images.length > 1 && (
-            <div className="grid grid-cols-5 gap-2">
+            <div className="flex gap-2">
               {product.images.map((image, index) => (
-                <div 
+                <button
                   key={index}
-                  className={`relative aspect-square cursor-pointer overflow-hidden rounded-md border ${
-                    selectedImage === index ? 'border-red-600' : 'border-gray-200'
-                  }`}
                   onClick={() => setSelectedImage(index)}
+                  className={`relative aspect-square w-20 overflow-hidden rounded-md ${
+                    selectedImage === index ? 'ring-2 ring-red-600' : ''
+                  }`}
                 >
                   <Image
                     src={getImageUrl(image)}
-                    alt={`${product.name} - imagem ${index + 1}`}
+                    alt={`${product.name} ${index + 1}`}
                     fill
                     className="object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder.svg"
-                    }}
                   />
-                </div>
+                </button>
               ))}
             </div>
           )}
         </div>
-        
-        {/* Seção de detalhes */}
-        <div>
-          <h1 className="mb-2 text-3xl font-bold">{product.name}</h1>
-          
-          <div className="mb-4 text-2xl font-bold text-red-600">
-            R$ {product.price.toFixed(2)}
+
+        {/* Product info */}
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+            <p className="mt-2 text-3xl font-bold text-red-600">
+              R$ {product.price.toFixed(2)}
+            </p>
           </div>
-          
-          <div className="mb-6">
-            <p className="text-gray-700">{product.description}</p>
+
+          <div className="prose prose-sm">
+            <p className="text-gray-600">{product.description}</p>
           </div>
-          
-          {/* Informações de estoque */}
-          <div className="mb-6">
-            <div className="flex items-center">
-              <span className="mr-2 font-semibold">Status:</span>
-              {product.stock && product.stock > 0 ? (
-                <span className="text-green-600">Em estoque ({product.stock} unidades)</span>
-              ) : (
-                <span className="text-red-600">Fora de estoque</span>
-              )}
-            </div>
-          </div>
-          
-          {/* Controle de quantidade */}
-          {product.stock && product.stock > 0 && (
-            <div className="mb-6">
-              <h3 className="mb-2 font-semibold">Quantidade:</h3>
-              <div className="flex items-center">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={decrementQuantity} 
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium">Quantidade:</span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={decreaseQuantity}
                   disabled={quantity <= 1}
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
-                <span className="mx-4 min-w-[2rem] text-center">{quantity}</span>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={incrementQuantity}
-                  disabled={!product.stock || quantity >= product.stock}
+                <span className="w-12 text-center font-medium">{quantity}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={increaseQuantity}
+                  disabled={quantity >= (product.stock || 0)}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </div>
-          )}
-          
-          {/* Botão de adicionar ao carrinho */}
-          <div className="mt-8">
-            <Button 
+
+            <div className="text-sm text-gray-600">
+              <span>Estoque disponível: {product.stock || 0} unidades</span>
+            </div>
+
+            <Button
+              size="lg"
               className="w-full bg-red-600 hover:bg-red-700"
               onClick={handleAddToCart}
               disabled={!product.stock || product.stock <= 0}

@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Upload, Volume2, X, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { IProduct } from "@/types/models"
-import { API_ENDPOINTS, fetchWithAuth } from "@/lib/api"
+import { API_ENDPOINTS, fetchWithAuth, API_URL } from "@/lib/api"
 import Image from "next/image"
 
 interface ProductFormProps {
@@ -38,6 +38,7 @@ export default function ProductForm({ category, title, editMode = false, product
   
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [existingImages, setExistingImages] = useState<string[]>([]) // Track existing images separately
   const [isSubmitting, setIsSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [soundFileName, setSoundFileName] = useState<string>("")
@@ -64,6 +65,16 @@ export default function ProductForm({ category, title, editMode = false, product
       const fetchProduct = async () => {
         try {
           const response = await fetchWithAuth(API_ENDPOINTS.product(productId))
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch product: ${response.status}`)
+          }
+
+          const contentType = response.headers.get("content-type")
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Server returned invalid response format")
+          }
+
           const data = await response.json()
           
           if (data.product) {
@@ -82,9 +93,10 @@ export default function ProductForm({ category, title, editMode = false, product
             // Set image previews for existing product
             if (product.images && product.images.length > 0) {
               const imageUrls = product.images.map((img: string) => 
-                img.startsWith('http') ? img : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/public/images/products/${img}`
+                img.startsWith('http') ? img : `${API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/public/images/products/${img}`
               )
               setImagePreviews(imageUrls)
+              setExistingImages([...product.images]) // Store original filenames
             }
             
             setSoundFileName(product.soundFile ? "sound-file.mp3" : "")
@@ -93,7 +105,7 @@ export default function ProductForm({ category, title, editMode = false, product
           console.error("Error fetching product:", error)
           toast({
             title: "Error",
-            description: "Failed to load product data",
+            description: error instanceof Error ? error.message : "Failed to load product data",
             variant: "destructive",
           })
         }
@@ -129,8 +141,9 @@ export default function ProductForm({ category, title, editMode = false, product
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // Limit to 3 images total
-    const remainingSlots = 3 - imageFiles.length
+    // Limit to 3 images total (including existing ones)
+    const totalExistingImages = editMode ? existingImages.length : 0
+    const remainingSlots = 3 - totalExistingImages - imageFiles.length
     const newFiles = Array.from(files).slice(0, remainingSlots)
 
     // Add new files to state
@@ -149,9 +162,48 @@ export default function ProductForm({ category, title, editMode = false, product
     })
   }
 
-  const removeImage = (index: number) => {
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
-    setImageFiles((prev) => prev.filter((_, i) => i !== index))
+  const removeImage = async (index: number) => {
+    const isExistingImage = editMode && index < existingImages.length
+
+    if (isExistingImage) {
+      // Remove existing image from server
+      try {
+        const imageFilename = existingImages[index]
+        const response = await fetchWithAuth(`${API_ENDPOINTS.product(productId!)}/remove-image`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ filename: imageFilename }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || 'Failed to delete image')
+        }
+
+        // Update local state
+        setExistingImages((prev) => prev.filter((_, i) => i !== index))
+        setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+
+        toast({
+          title: "Image deleted",
+          description: "The image has been removed successfully",
+        })
+      } catch (error) {
+        console.error("Error deleting image:", error)
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to delete image",
+          variant: "destructive",
+        })
+      }
+    } else {
+      // Remove new image (not yet uploaded)
+      const newImageIndex = index - existingImages.length
+      setImageFiles((prev) => prev.filter((_, i) => i !== newImageIndex))
+      setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -166,8 +218,9 @@ export default function ProductForm({ category, title, editMode = false, product
       return
     }
 
-    // Check if we have at least one image for new products
-    if (!editMode && imageFiles.length === 0) {
+    // Check if we have at least one image (existing or new)
+    const totalImages = existingImages.length + imageFiles.length
+    if (totalImages === 0) {
       toast({
         title: "Images required",
         description: "Please upload at least one product image",
@@ -187,11 +240,17 @@ export default function ProductForm({ category, title, editMode = false, product
       apiFormData.append('type', getCategoryType(category))
       apiFormData.append('featured', formData.featured.toString())
       apiFormData.append('stock', formData.stock)
+      apiFormData.append('sold', formData.sold)
 
-      // Add image files
+      // Add new image files
       imageFiles.forEach((file) => {
         apiFormData.append('images', file)
       })
+
+      // Add sound file if provided
+      if (formData.hasSound && formData.soundFile) {
+        apiFormData.append('soundFile', formData.soundFile)
+      }
 
       let response
       if (editMode && productId) {
@@ -208,36 +267,48 @@ export default function ProductForm({ category, title, editMode = false, product
         })
       }
 
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorMessage = "Failed to save product"
+        
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.message || errorMessage
+        } catch {
+          // If it's not JSON, use the text as the error message
+          errorMessage = errorText || errorMessage
+        }
+        
+        throw new Error(errorMessage)
+      }
+
       const data = await response.json()
 
-      if (response.ok) {
-        toast({
-          title: editMode ? "Product updated" : "Product created",
-          description: data.message || `${formData.name} has been ${editMode ? 'updated' : 'added'} successfully`,
+      toast({
+        title: editMode ? "Product updated" : "Product created",
+        description: data.message || `${formData.name} has been ${editMode ? 'updated' : 'added'} successfully`,
+      })
+
+      // Reset form for new products
+      if (!editMode) {
+        setFormData({
+          name: "",
+          price: "",
+          description: "",
+          featured: false,
+          stock: "10",
+          sold: "0",
+          hasSound: category !== "helmets",
+          soundFile: "",
         })
-
-        // Reset form for new products
-        if (!editMode) {
-          setFormData({
-            name: "",
-            price: "",
-            description: "",
-            featured: false,
-            stock: "10",
-            sold: "0",
-            hasSound: category !== "helmets",
-            soundFile: "",
-          })
-          setSoundFileName("")
-          setImageFiles([])
-          setImagePreviews([])
-        }
-
-        // Redirect to admin products page
-        router.push("/admin/products")
-      } else {
-        throw new Error(data.message || "Failed to save product")
+        setSoundFileName("")
+        setImageFiles([])
+        setImagePreviews([])
+        setExistingImages([])
       }
+
+      // Redirect to admin products page
+      router.push("/admin/products")
     } catch (error) {
       console.error("Error saving product:", error)
       toast({

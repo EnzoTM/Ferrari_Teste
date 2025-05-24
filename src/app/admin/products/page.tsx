@@ -48,13 +48,36 @@ export default function AdminProductsPage() {
   const loadProducts = async () => {
     try {
       const response = await fetchWithAuth(API_ENDPOINTS.products)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response. Backend may be down.')
+      }
+      
       const data = await response.json()
       setProducts(data.products || [])
     } catch (error) {
       console.error("Erro ao carregar produtos:", error)
+      
+      let errorMessage = "Não foi possível carregar os produtos."
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage = "Erro de conexão. Verifique se o servidor backend está rodando."
+      } else if (error instanceof Error) {
+        if (error.message.includes('non-JSON response')) {
+          errorMessage = "Servidor backend não está respondendo corretamente. Verifique se está rodando na porta 5000."
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os produtos. Tente novamente mais tarde.",
+        description: errorMessage,
         variant: "destructive"
       })
     }

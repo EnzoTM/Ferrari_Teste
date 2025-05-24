@@ -192,7 +192,7 @@ export default function CheckoutPage() {
         <Package className="mb-4 h-16 w-16 text-gray-400" />
         <h1 className="mb-2 text-2xl font-bold">Seu carrinho está vazio</h1>
         <p className="mb-6 text-gray-600">Adicione alguns produtos incríveis da Ferrari!</p>
-        <Button className="bg-red-600 hover:bg-red-700" onClick={() => router.push("/cars")}>
+        <Button className="bg-red-600 hover:bg-red-700" onClick={() => router.push("/")}>
           Explorar Produtos
         </Button>
       </div>

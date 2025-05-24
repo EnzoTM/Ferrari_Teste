@@ -242,24 +242,11 @@ export default function AddressSection() {
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="pb-2 text-sm">
+          <CardContent className="pb-6 text-sm">
             <p className="font-medium">{formatAddress(address)}</p>
             <p>{formatCityState(address)}</p>
             <p>CEP: {address.zipCode}</p>
           </CardContent>
-          <CardFooter className="pt-2">
-            <div className="flex w-full justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 md:flex-none"
-                onClick={editAddress}
-              >
-                <Edit className="mr-1 h-4 w-4" />
-                Editar
-              </Button>
-            </div>
-          </CardFooter>
         </Card>
       )}
 

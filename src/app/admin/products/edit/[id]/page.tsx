@@ -1,22 +1,22 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import ProductForm from "@/components/admin/product-form"
-import { isAdmin, isAuthenticated } from "@/lib/api"
+import { isAdmin, isAuthenticated, API_URL } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { IProduct } from "@/types/models"
 
-export default function EditProductPage({ params }: { params: { id: string } }) {
+export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [product, setProduct] = useState<IProduct | null>(null)
   const [loading, setLoading] = useState(true)
   const [productType, setProductType] = useState<"cars" | "formula1" | "helmets">("cars")
   const router = useRouter()
   const { toast } = useToast()
-  const { id } = params
 
   // Map the backend product type to frontend category
   const mapTypeToCategory = (type: string): "cars" | "formula1" | "helmets" => {
@@ -44,22 +44,38 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     const fetchProduct = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/products/${id}`)
+        const apiUrl = API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+        const response = await fetch(`${apiUrl}/api/products/${id}`)
         
         if (!response.ok) {
-          throw new Error("Failed to fetch product")
+          if (response.status === 404) {
+            throw new Error("Product not found")
+          }
+          throw new Error(`Failed to fetch product: ${response.status}`)
+        }
+        
+        const contentType = response.headers.get("content-type")
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Server returned invalid response format")
         }
         
         const data = await response.json()
+        
+        if (!data.product) {
+          throw new Error("Product data not found in response")
+        }
+        
         setProduct(data.product)
         setProductType(mapTypeToCategory(data.product.type))
       } catch (error) {
         console.error("Error fetching product:", error)
         toast({
           title: "Error",
-          description: "Failed to load product. Please try again.",
+          description: error instanceof Error ? error.message : "Failed to load product. Please try again.",
           variant: "destructive"
         })
+        // Redirect to products list on error
+        router.push('/admin/products')
       } finally {
         setLoading(false)
       }

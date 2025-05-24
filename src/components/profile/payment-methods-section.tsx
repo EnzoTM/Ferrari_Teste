@@ -270,24 +270,11 @@ export default function PaymentMethodSection() {
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="pb-2 text-sm">
+          <CardContent className="pb-6 text-sm">
             <p className="font-medium">{paymentMethod.cardHolderName}</p>
             <p>{paymentMethod.cardNumber.replace(/\d(?=\d{4})/g, '•')}</p>
             <p>Validade: {paymentMethod.expirationDate}</p>
           </CardContent>
-          <CardFooter className="pt-2">
-            <div className="flex w-full justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 md:flex-none"
-                onClick={editPaymentMethod}
-              >
-                <Edit className="mr-1 h-4 w-4" />
-                Editar
-              </Button>
-            </div>
-          </CardFooter>
         </Card>
       )}
 
