@@ -2,158 +2,142 @@
  * API utility functions for fetching data from the backend
  */
 
-// Changed to use port 5000 where the backend is actually running
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+// API Configuration
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-// Product types constants
-export const PRODUCT_TYPES = {
-  CAR: 'car',
-  FORMULA1: 'formula1',
-  HELMET: 'helmet',
-};
-
-// Endpoints updated to correspond to the backend
 export const API_ENDPOINTS = {
-  // Usuários
-  login: `${API_URL}/api/users/login`,
+  // Auth endpoints
   register: `${API_URL}/api/users/register`,
-  adminRegister: `${API_URL}/api/users/admin/register`, // Updated to use the admin registration endpoint
-  checkUser: `${API_URL}/api/users/check`, // Fixed to match the backend route name
-  users: `${API_URL}/api/users`,
-  userById: (id: string) => `${API_URL}/api/users/${id}`,
+  login: `${API_URL}/api/users/login`,
+  checkToken: `${API_URL}/api/users/checktoken`,
   
-  // Address and payment method (single approach)
+  // User endpoints
+  getUserData: `${API_URL}/api/users/user`,
+  updateUser: `${API_URL}/api/users/edit`,
   address: `${API_URL}/api/users/address`,
-  paymentMethod: `${API_URL}/api/users/payment-method`,
+  updateAddress: `${API_URL}/api/users/address`,
+  updatePaymentMethod: `${API_URL}/api/users/payment-method`,
+  getPaymentMethod: `${API_URL}/api/users/payment-method`,
+  userById: (id: string) => `${API_URL}/api/users/${id}`,
+  getCurrentUser: `${API_URL}/api/users/checkuser`,
   
-  // Produtos
+  // Cart endpoints
+  cart: `${API_URL}/api/users/cart`,
+  addToCart: `${API_URL}/api/users/cart`,
+  updateCartItem: (itemId: string) => `${API_URL}/api/users/cart/${itemId}`,
+  removeFromCart: (itemId: string) => `${API_URL}/api/users/cart/${itemId}`,
+  clearCart: `${API_URL}/api/users/cart/clear`,
+  
+  // Order endpoints
+  createOrder: `${API_URL}/api/users/orders`,
+  orders: `${API_URL}/api/users/orders`,
+  order: (orderId: string) => `${API_URL}/api/users/orders/${orderId}`,
+  
+  // Product endpoints
   products: `${API_URL}/api/products`,
   product: (id: string) => `${API_URL}/api/products/${id}`,
   productsByType: (type: string) => `${API_URL}/api/products/type/${type}`,
   featuredProducts: `${API_URL}/api/products/featured`,
+  searchProducts: (query: string) => `${API_URL}/api/products/search?q=${encodeURIComponent(query)}`,
   
-  // Outras rotas
-  cart: `${API_URL}/api/users/cart`,
-  orders: `${API_URL}/api/users/orders`,
-};
-
-/**
- * Check if user is authenticated
- */
-export const isAuthenticated = () => {
-  // Check if we're in the browser
-  if (typeof window === 'undefined') {
-    return false;
+  // Admin endpoints
+  createProduct: `${API_URL}/api/products`,
+  updateProduct: (id: string) => `${API_URL}/api/products/${id}`,
+  deleteProduct: (id: string) => `${API_URL}/api/products/${id}`,
+  removeProductImage: (id: string) => `${API_URL}/api/products/${id}/remove-image`,
+  
+  // Admin user management
+  getAllUsers: `${API_URL}/api/users/all`,
+  deleteUser: (id: string) => `${API_URL}/api/users/${id}`,
+}
+  
+// Helper function to get auth headers
+export const getAuthHeaders = (isFormData: boolean = false) => {
+  const token = localStorage.getItem('token')
+  const headers: Record<string, string> = {}
+  
+  // Only set Content-Type for JSON requests, not FormData
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json'
   }
   
-  // Check for token
-  const token = localStorage.getItem('token');
-  return !!token;
-};
-
-/**
- * Check if user is an admin
- */
-export const isAdmin = () => {
-  // Check if we're in the browser
-  if (typeof window === 'undefined') {
-    return false;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
   }
   
-  return localStorage.getItem('isAdmin') === 'true';
-};
+  return headers
+}
 
-/**
- * Get user ID from localStorage
- */
-export const getUserId = () => {
-  // Check if we're in the browser
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  
-  return localStorage.getItem('userId');
-};
-
-/**
- * Get current user data using token
- */
-export const getCurrentUser = async () => {
-  try {
-    // First check if we have a token
-    if (!isAuthenticated()) {
-      return null;
-    }
-    
-    const userId = getUserId();
-    if (!userId) {
-      return null;
-    }
-    
-    // Fetch user data from API
-    const response = await fetch(`${API_ENDPOINTS.userById(userId)}`, authFetchConfig());
-    
-    if (!response.ok) {
-      // If response is not ok, clear the token and return null
-      logout();
-      return null;
-    }
-    
-    const data = await response.json();
-    return data.user || data;
-  } catch (error) {
-    console.error('Error getting current user:', error);
-    return null;
-  }
-};
-
-/**
- * Logout user
- */
-export const logout = () => {
-  // Check if we're in the browser
-  if (typeof window === 'undefined') {
-    return;
-  }
-  
-  localStorage.removeItem('token');
-  localStorage.removeItem('userId');
-  localStorage.removeItem('isAdmin');
-};
-
-/**
- * Create a fetch config with auth token for authenticated requests
- */
-export const authFetchConfig = (method = 'GET', body = null) => {
-  const config = {
+// Helper function for authenticated requests
+export const authFetchConfig = (method: string = 'GET', body?: any): RequestInit => {
+  const isFormData = body instanceof FormData
+  const config: RequestInit = {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    ...(body ? { body: JSON.stringify(body) } : {})
-  };
-  
-  return config;
-};
-
-/**
- * Fetch with authentication
- */
-export const fetchWithAuth = (url, options = {}) => {
-  const token = localStorage.getItem('token');
-  
-  if (!token) {
-    throw new Error('No authentication token found');
+    headers: getAuthHeaders(isFormData),
   }
   
-  const headers = {
-    ...options.headers,
-    'Authorization': `Bearer ${token}`
-  };
+  if (body) {
+    config.body = isFormData ? body : JSON.stringify(body)
+  }
+  
+  return config
+}
+
+// Helper function for authenticated requests with custom headers
+export const fetchWithAuth = (url: string, config: RequestInit = {}) => {
+  const isFormData = config.body instanceof FormData
+  const token = localStorage.getItem('token')
+  
+  const headers: Record<string, string> = {}
+  
+  // Only set Content-Type for non-FormData requests
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json'
+  }
+  
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
   
   return fetch(url, {
-    ...options,
-    headers
-  });
-};
+    ...config,
+    headers: {
+      ...headers,
+      ...config.headers
+    }
+  })
+}
+
+// Auth utility functions
+export const isAuthenticated = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return !!localStorage.getItem('token')
+}
+
+export const isAdmin = (): boolean => {
+  if (typeof window === 'undefined') return false
+  
+  // First try to get from userData object
+  const userData = localStorage.getItem('userData')
+  if (userData) {
+    try {
+      const user = JSON.parse(userData)
+      return user.admin === true
+    } catch {
+      // If userData is corrupted, fall back to isAdmin flag
+    }
+  }
+  
+  // Fallback to direct isAdmin flag for backward compatibility
+  const isAdminFlag = localStorage.getItem('isAdmin')
+  return isAdminFlag === 'true'
+}
+
+export const logout = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('token')
+    localStorage.removeItem('userData')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('isAdmin')
+  }
+}

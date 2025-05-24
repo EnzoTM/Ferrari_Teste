@@ -130,8 +130,8 @@ export default function AddUserPage() {
         admin: formData.admin
       }
 
-      // Use API_ENDPOINTS.adminRegister for admin user creation
-      const response = await fetch(API_ENDPOINTS.adminRegister, {
+      // Use API_ENDPOINTS.register and the authFetchConfig helper
+      const response = await fetch(API_ENDPOINTS.register, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

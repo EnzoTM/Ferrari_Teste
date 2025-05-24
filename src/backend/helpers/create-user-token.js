@@ -20,6 +20,12 @@ const createUserToken = async (user, req, res) => {
     token: token,
     userId: user._id,
     admin: user.admin || false,
+    user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      admin: user.admin || false
+    }
   });
 };
 

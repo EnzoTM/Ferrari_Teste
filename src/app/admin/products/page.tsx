@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { API_ENDPOINTS, API_URL, fetchWithAuth, isAdmin, isAuthenticated } from "@/lib/api"
 import { IProduct } from "@/types/models"
-import { Loader2, Pencil, Trash2, ArrowLeft } from "lucide-react"
+import { Loader2, Pencil, Trash2, ArrowLeft, Plus } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Image from "next/image"
 import Link from "next/link"
@@ -120,6 +120,11 @@ export default function AdminProductsPage() {
           </Button>
           <h1 className="text-3xl font-bold">Gerenciar Produtos</h1>
         </div>
+        {/* <Button className="bg-red-600 hover:bg-red-700" asChild>
+          <Link href="/admin/products/add">
+            <Plus className="mr-2 h-4 w-4" /> Adicionar Produto
+          </Link>
+        </Button> */}
       </div>
       
       <Card>

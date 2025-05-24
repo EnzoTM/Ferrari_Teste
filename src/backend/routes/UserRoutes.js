@@ -25,9 +25,9 @@ router.put('/payment-method', verifyToken, UserController.updatePaymentMethod);
 // Cart routes
 router.get('/cart', verifyToken, UserController.getCart);
 router.post('/cart', verifyToken, UserController.addToCart);
+router.delete('/cart/clear', verifyToken, UserController.clearCart);
 router.put('/cart/:itemId', verifyToken, UserController.updateCartItem);
 router.delete('/cart/:itemId', verifyToken, UserController.removeFromCart);
-router.delete('/cart', verifyToken, UserController.clearCart);
 
 // Order routes
 router.get('/orders', verifyToken, UserController.getOrders);

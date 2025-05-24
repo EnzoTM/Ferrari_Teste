@@ -17,7 +17,7 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Middleware para validar token - similar ao verifyToken mas com algumas diferenças
+// Middleware para validar token e carregar usuário completo do banco
 const validateToken = async (req, res, next) => {
   if (!req.headers.authorization) {
     return res.status(401).json({ message: 'Acesso negado!' });
@@ -50,6 +50,9 @@ const checkAdmin = (req, res, next) => {
   next();
 };
 
+// Export as default for backward compatibility
 module.exports = verifyToken;
+
+// Named exports for new code
 module.exports.validateToken = validateToken;
 module.exports.checkAdmin = checkAdmin;

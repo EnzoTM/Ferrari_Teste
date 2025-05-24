@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const mongoose = require('mongoose');
-const Product = require('../models/Product');
+const { Product } = require('../models/Product');
 
 // Helpers
 const createUserToken = require('../helpers/create-user-token');
@@ -618,28 +618,30 @@ module.exports = class UserController {
       // Populate product details for order creation
       await user.populate('cart.product');
 
-      // Create order products array with required information
-      const orderProducts = user.cart.map(item => ({
+      // Create order items array matching OrderItemSchema structure
+      const orderItems = user.cart.map(item => ({
         product: item.product._id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity,
-        image: item.product.images && item.product.images.length > 0 ? item.product.images[0] : null
+        quantity: item.quantity
       }));
 
       // Calculate order total
-      const total = orderProducts.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const totalPrice = user.cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
-      // Create order
+      // Create order matching OrderSchema structure
       const newOrder = {
-        products: orderProducts,
-        total,
-        status: 'pending',
-        paymentType: user.paymentMethod.type,
+        orderItem: orderItems,
+        totalPrice: totalPrice,
+        paymentMethod: {
+          type: user.paymentMethod.type,
+          cardNumber: user.paymentMethod.cardNumber,
+          cardHolderName: user.paymentMethod.cardHolderName,
+          expirationDate: user.paymentMethod.expirationDate,
+          cvv: user.paymentMethod.cvv
+        },
         shippingAddress: {
           street: user.address.street,
           number: user.address.number,
-          complement: user.address.complement,
+          complement: user.address.complement || '',
           neighborhood: user.address.neighborhood,
           city: user.address.city,
           state: user.address.state,
@@ -669,6 +671,7 @@ module.exports = class UserController {
         order: user.orders[user.orders.length - 1]
       });
     } catch (error) {
+      console.error('Create order error:', error);
       res.status(500).json({ message: error.message });
     }
   }
@@ -683,7 +686,30 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      res.status(200).json({ orders: user.orders });
+      // Populate product details for each order item in all orders
+      const populatedOrders = [];
+      
+      for (const order of user.orders) {
+        const populatedOrder = { ...order.toObject() };
+        
+        for (let i = 0; i < populatedOrder.orderItem.length; i++) {
+          const product = await Product.findById(populatedOrder.orderItem[i].product);
+          if (product) {
+            populatedOrder.orderItem[i] = {
+              ...populatedOrder.orderItem[i],
+              productDetails: {
+                name: product.name,
+                price: product.price,
+                images: product.images
+              }
+            };
+          }
+        }
+        
+        populatedOrders.push(populatedOrder);
+      }
+
+      res.status(200).json({ orders: populatedOrders });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -707,7 +733,24 @@ module.exports = class UserController {
         return res.status(404).json({ message: 'Pedido não encontrado' });
       }
 
-      res.status(200).json({ order });
+      // Populate product details for each order item
+      const populatedOrder = { ...order.toObject() };
+      
+      for (let i = 0; i < populatedOrder.orderItem.length; i++) {
+        const product = await Product.findById(populatedOrder.orderItem[i].product);
+        if (product) {
+          populatedOrder.orderItem[i] = {
+            ...populatedOrder.orderItem[i],
+            productDetails: {
+              name: product.name,
+              price: product.price,
+              images: product.images
+            }
+          };
+        }
+      }
+
+      res.status(200).json({ order: populatedOrder });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }

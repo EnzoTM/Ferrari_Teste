@@ -1,487 +1,238 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Minus, Plus, Trash2 } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useToast } from "@/hooks/use-toast"
 import { useCart } from "@/context/cart-context"
-import { useToast } from "@/components/ui/use-toast"
+import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react"
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, subtotal, shipping, total, clearCart } = useCart()
-  const [activeTab, setActiveTab] = useState("cart")
-  const isMobile = useMediaQuery("(max-width: 768px)")
-  const router = useRouter()
+  const { 
+    cart, 
+    removeItem, 
+    updateItemQuantity, 
+    clearCart, 
+    isLoading 
+  } = useCart()
   const { toast } = useToast()
+  const [isUpdating, setIsUpdating] = useState<string | null>(null)
 
-  // Form states
-  const [shippingInfo, setShippingInfo] = useState({
-    firstName: "",
-    lastName: "",
-    address: "",
-    city: "",
-    zipCode: "",
-    country: "",
-    phone: "",
-  })
-
-  const [paymentInfo, setPaymentInfo] = useState({
-    cardName: "",
-    cardNumber: "",
-    expiry: "",
-    cvv: "",
-  })
-
-  const handleShippingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target
-    setShippingInfo((prev) => ({ ...prev, [id]: value }))
-  }
-
-  const handlePaymentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target
-
-    // Para o número do cartão, aceitar apenas números
-    if (id === "cardNumber" || id === "cvv") {
-      const numericValue = value.replace(/\D/g, "")
-      setPaymentInfo((prev) => ({ ...prev, [id]: numericValue }))
-    } else {
-      setPaymentInfo((prev) => ({ ...prev, [id]: value }))
+  const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
+    if (newQuantity < 1) return
+    
+    setIsUpdating(itemId)
+    try {
+      await updateItemQuantity(itemId, newQuantity)
+    } finally {
+      setIsUpdating(null)
     }
   }
 
-  const validateShippingForm = () => {
-    // Simple validation - check if all fields are filled
-    return Object.values(shippingInfo).every((value) => value.trim() !== "")
-  }
-
-  const validatePaymentForm = () => {
-    // Simple validation - check if all fields are filled
-    return Object.values(paymentInfo).every((value) => value.trim() !== "")
-  }
-
-  const handleContinueToShipping = () => {
-    setActiveTab("shipping")
-  }
-
-  const handleContinueToPayment = () => {
-    if (validateShippingForm()) {
-      setActiveTab("payment")
-    } else {
+  const handleRemoveItem = async (itemId: string) => {
+    setIsUpdating(itemId)
+    try {
+      await removeItem(itemId)
       toast({
-        title: "Please fill all fields",
-        description: "All shipping information fields are required.",
-        variant: "destructive",
+        title: "Item removido",
+        description: "O produto foi removido do carrinho.",
+      })
+    } finally {
+      setIsUpdating(null)
+    }
+  }
+
+  const handleClearCart = async () => {
+    try {
+      await clearCart()
+      toast({
+        title: "Carrinho limpo",
+        description: "Todos os itens foram removidos do carrinho.",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível limpar o carrinho.",
+        variant: "destructive"
       })
     }
   }
 
-  const handlePlaceOrder = () => {
-    if (validatePaymentForm()) {
-      // Atualizar o estoque para cada item comprado
-      updateProductInventory(items)
-
-      // Process the order
-      toast({
-        title: "Order placed successfully!",
-        description: "Thank you for your purchase.",
-      })
-
-      // Set flag for order success page
-      localStorage.setItem("orderPlaced", "true")
-
-      // Clear the cart and redirect to success page
-      clearCart()
-      router.push("/order-success")
-    } else {
-      toast({
-        title: "Please fill all fields",
-        description: "All payment information fields are required.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  // Função para atualizar o estoque após a compra
-  const updateProductInventory = (cartItems: any[]) => {
-    // Atualizar produtos padrão
-    const defaultProductCategories = ["cars", "formula1", "helmets"]
-
-    defaultProductCategories.forEach((category) => {
-      const storageKey = `ferrari${category.charAt(0).toUpperCase() + category.slice(1)}`
-      const products = JSON.parse(localStorage.getItem(storageKey) || "[]")
-
-      let updated = false
-
-      // Verificar cada item do carrinho
-      cartItems.forEach((cartItem) => {
-        const productIndex = products.findIndex((p: any) => p.id === cartItem.id)
-
-        if (productIndex !== -1) {
-          // Produto encontrado, atualizar estoque e vendas
-          if (products[productIndex].quantity === undefined) {
-            products[productIndex].quantity = 10 // valor padrão se não existir
-          }
-
-          if (products[productIndex].sold === undefined) {
-            products[productIndex].sold = 0 // valor padrão se não existir
-          }
-
-          // Subtrair do estoque e adicionar às vendas
-          products[productIndex].quantity = Math.max(0, products[productIndex].quantity - cartItem.quantity)
-          products[productIndex].sold += cartItem.quantity
-
-          // Atualizar status de estoque
-          products[productIndex].inStock = products[productIndex].quantity > 0
-
-          updated = true
-        }
-      })
-
-      // Salvar produtos atualizados
-      if (updated) {
-        localStorage.setItem(storageKey, JSON.stringify(products))
+  const getImageUrl = (item: any) => {
+    if (item.image) {
+      // If it's already a full URL, use it
+      if (item.image.startsWith('http')) {
+        return item.image
       }
-    })
+      // If it starts with /public, construct the full URL
+      if (item.image.startsWith('/public')) {
+        return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${item.image}`
+      }
+      // If it's just a filename, construct the full URL
+      if (!item.image.startsWith('/')) {
+        return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/public/images/products/${item.image}`
+      }
+      // If it starts with /, use as is
+      return item.image
+    }
+    return "/placeholder.svg"
   }
 
-  if (items.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="container flex min-h-[50vh] items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+      </div>
+    )
+  }
+
+  if (cart.items.length === 0) {
     return (
       <div className="container flex min-h-[50vh] flex-col items-center justify-center py-8">
-        <h1 className="text-2xl font-bold">Your Cart is Empty</h1>
-        <p className="mt-2 text-center text-gray-600">Add some products to your cart to continue shopping</p>
-        <Button className="mt-6 bg-red-600 hover:bg-red-700" asChild>
-          <Link href="/">Continue Shopping</Link>
+        <ShoppingBag className="mb-4 h-16 w-16 text-gray-400" />
+        <h1 className="mb-2 text-2xl font-bold">Seu carrinho está vazio</h1>
+        <p className="mb-6 text-gray-600">Adicione alguns produtos incríveis da Ferrari!</p>
+        <Button className="bg-red-600 hover:bg-red-700" asChild>
+          <Link href="/cars">Explorar Produtos</Link>
         </Button>
       </div>
     )
   }
 
   return (
-    <div className="container py-4 md:py-8">
-      <h1 className="mb-4 text-2xl font-bold md:mb-8 md:text-3xl">Shopping Cart</h1>
-
-      <Tabs defaultValue="cart" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6 grid w-full grid-cols-3">
-          <TabsTrigger value="cart">Cart</TabsTrigger>
-          <TabsTrigger value="shipping">Shipping</TabsTrigger>
-          <TabsTrigger value="payment">Payment</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="cart" className="space-y-4">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="md:col-span-2">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className="mb-4 flex flex-col items-start space-y-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0"
-                >
-                  <div className="relative h-20 w-20 flex-shrink-0">
-                    <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-contain" />
-                  </div>
-
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{item.name}</h3>
-                    <p className="text-sm text-gray-500">Item #{item.id}</p>
-                  </div>
-
-                  <div className="flex w-full items-center justify-between sm:w-auto sm:flex-col sm:items-end">
+    <div className="container py-8">
+      <h1 className="mb-8 text-3xl font-bold">Carrinho de Compras</h1>
+      
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Cart Items */}
+        <div className="lg:col-span-2">
+          <div className="space-y-4">
+            {cart.items.map((item) => (
+              <Card key={item.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-4">
+                    {/* Product Image */}
+                    <div className="relative h-20 w-20 overflow-hidden rounded-lg">
+                      <Image
+                        src={getImageUrl(item)}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg"
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Product Details */}
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{item.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        Preço unitário: R$ {item.price.toFixed(2)}
+                      </p>
+                      {item.category && (
+                        <p className="text-sm text-gray-500">
+                          Categoria: {item.category}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Quantity Controls */}
                     <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        onClick={() => handleUpdateQuantity(item.id, (item.quantity || 1) - 1)}
+                        disabled={(item.quantity || 1) <= 1 || isUpdating === item.id}
                       >
                         <Minus className="h-4 w-4" />
-                        <span className="sr-only">Decrease quantity</span>
                       </Button>
-                      <span className="w-8 text-center">{item.quantity}</span>
+                      <span className="w-8 text-center">{item.quantity || 1}</span>
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => handleUpdateQuantity(item.id, (item.quantity || 1) + 1)}
+                        disabled={isUpdating === item.id}
                       >
                         <Plus className="h-4 w-4" />
-                        <span className="sr-only">Increase quantity</span>
                       </Button>
                     </div>
-
-                    <div className="flex items-center space-x-2">
-                      <div className="text-right font-semibold">${(item.price * item.quantity).toFixed(2)}</div>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => removeItem(item.id)}
-                      >
+                    
+                    {/* Price */}
+                    <div className="text-right">
+                      <p className="font-semibold">
+                        R$ {(item.price * (item.quantity || 1)).toFixed(2)}
+                      </p>
+                    </div>
+                    
+                    {/* Remove Button */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleRemoveItem(item.id)}
+                      disabled={isUpdating === item.id}
+                      className="text-red-600 hover:bg-red-100"
+                    >
+                      {isUpdating === item.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
                         <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Remove item</span>
-                      </Button>
-                    </div>
+                      )}
+                    </Button>
                   </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          {/* Clear Cart Button */}
+          <div className="mt-6">
+            <Button
+              variant="outline"
+              onClick={handleClearCart}
+              className="text-red-600 hover:bg-red-100"
+            >
+              Limpar Carrinho
+            </Button>
+          </div>
+        </div>
+        
+        {/* Order Summary */}
+        <div>
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="mb-4 text-xl font-semibold">Resumo do Pedido</h2>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Itens ({cart.itemCount})</span>
+                  <span>R$ {cart.total.toFixed(2)}</span>
                 </div>
-              ))}
-            </div>
-
-            <div>
-              <Card className="sticky top-20">
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Shipping</span>
-                    <span>${shipping.toFixed(2)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-bold">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full bg-red-600 hover:bg-red-700" onClick={handleContinueToShipping}>
-                    Proceed to Shipping
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="shipping">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="md:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Shipping Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        placeholder="John"
-                        value={shippingInfo.firstName}
-                        onChange={handleShippingChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        placeholder="Doe"
-                        value={shippingInfo.lastName}
-                        onChange={handleShippingChange}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Input
-                      id="address"
-                      placeholder="123 Main St"
-                      value={shippingInfo.address}
-                      onChange={handleShippingChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        placeholder="New York"
-                        value={shippingInfo.city}
-                        onChange={handleShippingChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="zipCode">Zip Code</Label>
-                      <Input
-                        id="zipCode"
-                        placeholder="10001"
-                        value={shippingInfo.zipCode}
-                        onChange={handleShippingChange}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      placeholder="United States"
-                      value={shippingInfo.country}
-                      onChange={handleShippingChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="+1 (555) 123-4567"
-                      value={shippingInfo.phone}
-                      onChange={handleShippingChange}
-                      required
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:space-y-0">
-                  <Button variant="outline" onClick={() => setActiveTab("cart")}>
-                    Back to Cart
-                  </Button>
-                  <Button className="bg-red-600 hover:bg-red-700" onClick={handleContinueToPayment}>
-                    Continue to Payment
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-
-            <div>
-              <Card className="sticky top-20">
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Shipping</span>
-                    <span>${shipping.toFixed(2)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-bold">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="payment">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="md:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Payment Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cardName">Name on Card</Label>
-                    <Input
-                      id="cardName"
-                      placeholder="John Doe"
-                      value={paymentInfo.cardName}
-                      onChange={handlePaymentChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cardNumber">Card Number</Label>
-                    <Input
-                      id="cardNumber"
-                      placeholder="1234567890123456"
-                      value={paymentInfo.cardNumber}
-                      onChange={handlePaymentChange}
-                      maxLength={16}
-                      inputMode="numeric"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="expiry">Expiry Date</Label>
-                      <Input
-                        id="expiry"
-                        placeholder="MM/YY"
-                        value={paymentInfo.expiry}
-                        onChange={handlePaymentChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cvv">CVV</Label>
-                      <Input
-                        id="cvv"
-                        placeholder="123"
-                        value={paymentInfo.cvv}
-                        onChange={handlePaymentChange}
-                        maxLength={3}
-                        inputMode="numeric"
-                        required
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:space-y-0">
-                  <Button variant="outline" onClick={() => setActiveTab("shipping")}>
-                    Back to Shipping
-                  </Button>
-                  <Button className="bg-red-600 hover:bg-red-700" onClick={handlePlaceOrder}>
-                    Place Order
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-
-            <div>
-              <Card className="sticky top-20">
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Shipping</span>
-                    <span>${shipping.toFixed(2)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-bold">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+                <div className="flex justify-between">
+                  <span>Frete</span>
+                  <span>Grátis</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-lg font-semibold">
+                  <span>Total</span>
+                  <span>R$ {cart.total.toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <Button className="mt-6 w-full bg-red-600 hover:bg-red-700" asChild>
+                <Link href="/checkout">Finalizar Compra</Link>
+              </Button>
+              
+              <Button variant="outline" className="mt-2 w-full" asChild>
+                <Link href="/cars">Continuar Comprando</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

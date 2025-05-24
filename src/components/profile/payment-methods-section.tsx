@@ -49,7 +49,7 @@ export default function PaymentMethodSection() {
     const fetchPaymentMethod = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch(API_ENDPOINTS.paymentMethod, authFetchConfig())
+        const response = await fetch(API_ENDPOINTS.getPaymentMethod, authFetchConfig())
         
         if (!response.ok) {
           throw new Error('Failed to fetch payment method')
@@ -80,7 +80,7 @@ export default function PaymentMethodSection() {
     }
     
     try {
-      const url = API_ENDPOINTS.paymentMethod
+      const url = API_ENDPOINTS.updatePaymentMethod
       const method = 'PUT'
       
       // Fix: Pass currentPayment directly as the body parameter

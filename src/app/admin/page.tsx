@@ -110,36 +110,6 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Tabs defaultValue="overview" className="mt-8">
-        <TabsList>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="products" onClick={() => router.push('/admin/products')}>
-            Produtos
-          </TabsTrigger>
-          <TabsTrigger value="users" onClick={() => router.push('/admin/users')}>
-            Usuários
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Bem-vindo ao Painel de Administração</CardTitle>
-              <CardDescription>
-                Este é o painel de administração da Ferrari Store. Aqui você pode gerenciar produtos,
-                usuários e pedidos da loja.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>
-                Use as abas acima para navegar entre as diferentes seções do painel administrativo.
-                Na seção de Produtos, você pode adicionar, editar e remover produtos do catálogo.
-                Na seção de Usuários, você pode gerenciar as contas de usuários registrados.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   )
 }

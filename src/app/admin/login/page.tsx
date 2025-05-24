@@ -52,7 +52,16 @@ export default function AdminLoginPage() {
           
           localStorage.setItem('userId', data.user._id)
           localStorage.setItem('isAdmin', 'true')
-          localStorage.setItem('user', JSON.stringify(data.user))
+          
+          // Armazenar userData no formato correto para consistência
+          const userData = {
+            id: data.user._id,
+            admin: data.user.admin
+          };
+          localStorage.setItem('userData', JSON.stringify(userData))
+          
+          // Disparar evento customizado para atualizar o header
+          window.dispatchEvent(new Event('authStateChanged'));
           
           toast({
             title: "Login realizado com sucesso",

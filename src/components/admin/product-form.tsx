@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,10 +10,12 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
-import { Upload, Volume2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { Upload, Volume2, X, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { IProduct } from "@/types/models"
+import { API_ENDPOINTS, fetchWithAuth } from "@/lib/api"
+import Image from "next/image"
 
 interface ProductFormProps {
   category: "cars" | "formula1" | "helmets"
@@ -28,18 +30,16 @@ export default function ProductForm({ category, title, editMode = false, product
     price: "",
     description: "",
     featured: false,
-    stock: "10", // Valor padrão para quantidade
-    sold: "0", // Valor padrão para vendas
-    hasSound: category !== "helmets", // Campo adicional para controle de frontend
-    soundFile: "", // Campo adicional para controle de frontend
+    stock: "10",
+    sold: "0",
+    hasSound: category !== "helmets",
+    soundFile: "",
   })
-
-  const [images, setImages] = useState<string[]>([
-    "/placeholder.svg?height=500&width=500",
-    "/placeholder.svg?height=500&width=500",
-    "/placeholder.svg?height=500&width=500",
-  ])
-
+  
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [soundFileName, setSoundFileName] = useState<string>("")
   const router = useRouter()
   const { toast } = useToast()
@@ -61,31 +61,50 @@ export default function ProductForm({ category, title, editMode = false, product
   // Load product data if in edit mode
   useEffect(() => {
     if (editMode && productId) {
-      const storageKey = `ferrari${category.charAt(0).toUpperCase() + category.slice(1)}`
-      const products = JSON.parse(localStorage.getItem(storageKey) || "[]")
-      const product = products.find((p: IProduct) => p._id === productId || p.id === productId)
-
-      if (product) {
-        setFormData({
-          name: product.name,
-          price: product.price.toString(),
-          description: product.description,
-          featured: product.featured || false,
-          stock: product.stock !== undefined ? product.stock.toString() : "10",
-          sold: product.sold !== undefined ? product.sold.toString() : "0",
-          hasSound: !!product.soundFile, // Campo adicional
-          soundFile: product.soundFile || "", // Campo adicional
-        })
-        setImages(product.images)
-        setSoundFileName(product.soundFile ? "sound-file.mp3" : "")
+      const fetchProduct = async () => {
+        try {
+          const response = await fetchWithAuth(API_ENDPOINTS.product(productId))
+          const data = await response.json()
+          
+          if (data.product) {
+            const product = data.product
+            setFormData({
+              name: product.name,
+              price: product.price.toString(),
+              description: product.description,
+              featured: product.featured || false,
+              stock: product.stock !== undefined ? product.stock.toString() : "10",
+              sold: product.sold !== undefined ? product.sold.toString() : "0",
+              hasSound: !!product.soundFile,
+              soundFile: product.soundFile || "",
+            })
+            
+            // Set image previews for existing product
+            if (product.images && product.images.length > 0) {
+              const imageUrls = product.images.map((img: string) => 
+                img.startsWith('http') ? img : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/public/images/products/${img}`
+              )
+              setImagePreviews(imageUrls)
+            }
+            
+            setSoundFileName(product.soundFile ? "sound-file.mp3" : "")
+          }
+        } catch (error) {
+          console.error("Error fetching product:", error)
+          toast({
+            title: "Error",
+            description: "Failed to load product data",
+            variant: "destructive",
+          })
+        }
       }
+      
+      fetchProduct()
     }
-  }, [editMode, productId, category])
+  }, [editMode, productId, toast])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-
-    // Para campos numéricos, garantir que apenas números sejam aceitos
     if (name === "stock" || name === "sold") {
       const numericValue = value.replace(/\D/g, "")
       setFormData((prev) => ({ ...prev, [name]: numericValue }))
@@ -102,15 +121,42 @@ export default function ProductForm({ category, title, editMode = false, product
     const file = e.target.files?.[0]
     if (file) {
       setSoundFileName(file.name)
-      // In a real app, you would upload the file to a server and get a URL back
-      // For this demo, we'll just store the file name
       setFormData((prev) => ({ ...prev, soundFile: `/sounds/${file.name}` }))
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
 
+    // Limit to 3 images total
+    const remainingSlots = 3 - imageFiles.length
+    const newFiles = Array.from(files).slice(0, remainingSlots)
+
+    // Add new files to state
+    setImageFiles((prev) => [...prev, ...newFiles])
+
+    // Create preview URLs for new files
+    const newPreviews = newFiles.map(file => URL.createObjectURL(file))
+    setImagePreviews((prev) => [...prev, ...newPreviews])
+
+    // Reset the file input value
+    if (fileInputRef.current) fileInputRef.current.value = ""
+
+    toast({
+      title: "Images added",
+      description: `${newFiles.length} image(s) selected for upload`,
+    })
+  }
+
+  const removeImage = (index: number) => {
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+    setImageFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
     if (!formData.name || !formData.price || !formData.description) {
       toast({
         title: "Missing fields",
@@ -120,74 +166,88 @@ export default function ProductForm({ category, title, editMode = false, product
       return
     }
 
-    // Converter tipo de categoria para o formato do backend
-    const productType = getCategoryType(category)
-
-    // Create a product object using the backend structure
-    const productData: Partial<IProduct> & { id?: string; soundFile?: string } = {
-      _id: editMode && productId ? productId : undefined,
-      name: formData.name,
-      price: Number.parseFloat(formData.price),
-      description: formData.description,
-      images: images,
-      type: productType,
-      featured: formData.featured,
-      stock: Number.parseInt(formData.stock) || 10,
-      sold: Number.parseInt(formData.sold) || 0,
-      createdAt: editMode ? undefined : new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-
-    // Add sound file metadata if applicable (campo apenas para frontend)
-    if (formData.hasSound && formData.soundFile) {
-      productData.soundFile = formData.soundFile
-    }
-
-    // In a real app, this would be sent to an API
-    // For demo, we'll store in localStorage
-    const storageKey = `ferrari${category.charAt(0).toUpperCase() + category.slice(1)}`
-    const existingProducts = JSON.parse(localStorage.getItem(storageKey) || "[]")
-
-    if (editMode && productId) {
-      // Update existing product
-      const updatedProducts = existingProducts.map((p: IProduct & { id?: string }) => 
-        (p._id === productId) ? { ...productData, _id: p._id } : p
-      )
-      localStorage.setItem(storageKey, JSON.stringify(updatedProducts))
+    // Check if we have at least one image for new products
+    if (!editMode && imageFiles.length === 0) {
       toast({
-        title: "Product updated",
-        description: `${formData.name} has been updated`,
+        title: "Images required",
+        description: "Please upload at least one product image",
+        variant: "destructive",
       })
-    } else {
-      // Add new product with a new ID
-      const newProduct = {
-        ...productData,
-        _id: `${productType}-${Date.now()}`,
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      // Prepare form data for API
+      const apiFormData = new FormData()
+      apiFormData.append('name', formData.name)
+      apiFormData.append('price', formData.price)
+      apiFormData.append('description', formData.description)
+      apiFormData.append('type', getCategoryType(category))
+      apiFormData.append('featured', formData.featured.toString())
+      apiFormData.append('stock', formData.stock)
+
+      // Add image files
+      imageFiles.forEach((file) => {
+        apiFormData.append('images', file)
+      })
+
+      let response
+      if (editMode && productId) {
+        // Update existing product
+        response = await fetchWithAuth(API_ENDPOINTS.product(productId), {
+          method: 'PATCH',
+          body: apiFormData,
+        })
+      } else {
+        // Create new product
+        response = await fetchWithAuth(API_ENDPOINTS.products, {
+          method: 'POST',
+          body: apiFormData,
+        })
       }
-      localStorage.setItem(storageKey, JSON.stringify([...existingProducts, newProduct]))
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: editMode ? "Product updated" : "Product created",
+          description: data.message || `${formData.name} has been ${editMode ? 'updated' : 'added'} successfully`,
+        })
+
+        // Reset form for new products
+        if (!editMode) {
+          setFormData({
+            name: "",
+            price: "",
+            description: "",
+            featured: false,
+            stock: "10",
+            sold: "0",
+            hasSound: category !== "helmets",
+            soundFile: "",
+          })
+          setSoundFileName("")
+          setImageFiles([])
+          setImagePreviews([])
+        }
+
+        // Redirect to admin products page
+        router.push("/admin/products")
+      } else {
+        throw new Error(data.message || "Failed to save product")
+      }
+    } catch (error) {
+      console.error("Error saving product:", error)
       toast({
-        title: "Product added",
-        description: `${formData.name} has been added to the store`,
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save product",
+        variant: "destructive",
       })
+    } finally {
+      setIsSubmitting(false)
     }
-
-    // Reset form or redirect
-    if (!editMode) {
-      setFormData({
-        name: "",
-        price: "",
-        description: "",
-        featured: false,
-        stock: "10",
-        sold: "0",
-        hasSound: category !== "helmets",
-        soundFile: "",
-      })
-      setSoundFileName("")
-    }
-
-    // Redirect to admin dashboard
-    router.push("/admin/products")
   }
 
   return (
@@ -206,6 +266,7 @@ export default function ProductForm({ category, title, editMode = false, product
               onChange={handleChange}
               placeholder="Ferrari SF90 Stradale"
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -221,6 +282,7 @@ export default function ProductForm({ category, title, editMode = false, product
               onChange={handleChange}
               placeholder="129.99"
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -236,6 +298,7 @@ export default function ProductForm({ category, title, editMode = false, product
                 onChange={handleChange}
                 placeholder="10"
                 required
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
@@ -248,6 +311,7 @@ export default function ProductForm({ category, title, editMode = false, product
                 value={formData.sold}
                 onChange={handleChange}
                 placeholder="0"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -262,26 +326,61 @@ export default function ProductForm({ category, title, editMode = false, product
               placeholder="Detailed description of the product..."
               rows={4}
               required
+              disabled={isSubmitting}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Product Images</Label>
+            <Label className="block mb-2">Product Images</Label>
             <div className="grid grid-cols-3 gap-4">
-              {images.map((image, index) => (
-                <div key={index} className="relative aspect-square rounded border bg-gray-50">
-                  <div className="flex h-full items-center justify-center">
-                    <Upload className="h-8 w-8 text-gray-400" />
+              {imagePreviews.length > 0 ? (
+                imagePreviews.map((preview, index) => (
+                  <div key={index} className="relative aspect-square rounded border bg-gray-50 overflow-hidden">
+                    <Image
+                      src={preview}
+                      alt={`Product image ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-white p-1 rounded-full shadow-sm hover:bg-red-50"
+                      title="Remove image"
+                      disabled={isSubmitting}
+                    >
+                      <X className="h-4 w-4 text-red-500" />
+                    </button>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gray-100 p-1 text-center text-xs">
-                    Image {index + 1}
+                ))
+              ) : (
+                Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="relative aspect-square rounded border bg-gray-50">
+                    <div className="flex h-full items-center justify-center">
+                      <Upload className="h-8 w-8 text-gray-400" />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
-            <p className="text-xs text-gray-500">
-              Image upload functionality would be implemented in a real application
-            </p>
+            
+            {imagePreviews.length < 3 && (
+              <div className="mt-4">
+                <Input
+                  ref={fileInputRef}
+                  id="product-images"
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={handleImageChange}
+                  multiple={true}
+                  className="mb-2"
+                  disabled={isSubmitting}
+                />
+                <p className="text-xs text-gray-500">
+                  Upload up to 3 product images (JPG, JPEG, or PNG). Maximum size: 5MB per image.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
@@ -289,6 +388,7 @@ export default function ProductForm({ category, title, editMode = false, product
               id="featured"
               checked={formData.featured}
               onCheckedChange={(checked) => handleSwitchChange("featured", checked)}
+              disabled={isSubmitting}
             />
             <Label htmlFor="featured">Featured Product</Label>
           </div>
@@ -300,10 +400,10 @@ export default function ProductForm({ category, title, editMode = false, product
                   id="hasSound"
                   checked={formData.hasSound}
                   onCheckedChange={(checked) => handleSwitchChange("hasSound", checked)}
+                  disabled={isSubmitting}
                 />
                 <Label htmlFor="hasSound">Has Engine Sound</Label>
               </div>
-
               {formData.hasSound && (
                 <div className="space-y-2 rounded-md border p-4">
                   <Label htmlFor="soundFile" className="flex items-center">
@@ -317,6 +417,7 @@ export default function ProductForm({ category, title, editMode = false, product
                       accept="audio/*"
                       onChange={handleSoundFileChange}
                       className="flex-1"
+                      disabled={isSubmitting}
                     />
                     {soundFileName && (
                       <Alert className="flex-1 py-2">
@@ -334,11 +435,27 @@ export default function ProductForm({ category, title, editMode = false, product
           )}
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button type="submit" className="bg-red-600 hover:bg-red-700">
-            {editMode ? "Update Product" : "Add Product"}
+          <Button 
+            type="submit" 
+            className="bg-red-600 hover:bg-red-700"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {editMode ? "Updating..." : "Adding..."}
+              </>
+            ) : (
+              editMode ? "Update Product" : "Add Product"
+            )}
           </Button>
         </CardFooter>
       </form>

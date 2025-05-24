@@ -90,10 +90,6 @@ export default function UsersPage() {
     }
   }
 
-  const handleAddUser = () => {
-    router.push("/admin/users/add")
-  }
-
   const handleEditUser = (userId: string) => {
     router.push(`/admin/users/edit/${userId}`)
   }
@@ -145,10 +141,6 @@ export default function UsersPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">User Management</h1>
-        <Button className="bg-red-600 hover:bg-red-700" onClick={handleAddUser}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
       </div>
       <Tabs defaultValue="all">
         <TabsList className="mb-4">

@@ -105,6 +105,16 @@ export default function RegisterPage() {
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('isAdmin', data.admin ? 'true' : 'false');
         
+        // Armazenar userData completo para verificação de admin
+        const userData = {
+          id: data.userId,
+          admin: data.admin || false
+        };
+        localStorage.setItem('userData', JSON.stringify(userData));
+        
+        // Disparar evento customizado para atualizar o header
+        window.dispatchEvent(new Event('authStateChanged'));
+        
         toast({
           title: "Registro realizado com sucesso",
           description: "Sua conta foi criada. Você será redirecionado para a página inicial.",

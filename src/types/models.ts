@@ -44,13 +44,23 @@ export interface IProduct {
   updatedAt?: string;
 }
 
-// Interface para Item do Carrinho
-export interface ICartItem {
+// Interface para Item do Carrinho (Backend)
+export interface IBackendCartItem {
   _id?: string;
   product: IProduct;
   quantity: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Interface para Item do Carrinho (Frontend)
+export interface ICartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  category: string;
 }
 
 // Interface para Item do Pedido
@@ -84,7 +94,7 @@ export interface IUser {
   admin?: boolean;
   address?: IAddress | null;
   paymentMethod?: IPaymentMethod | null;
-  cart: ICartItem[];
+  cart: IBackendCartItem[];
   orders: IOrder[];
   createdAt?: string;
   updatedAt?: string;
@@ -99,11 +109,12 @@ export interface ICart {
 // Interface para estado do contexto do carrinho
 export interface CartContextState {
   cart: ICart;
-  addItem: (item: Omit<ICartItem, 'quantity'> & { quantity?: number }) => void;
-  removeItem: (itemId: string) => void;
-  updateItemQuantity: (itemId: string, quantity: number) => void;
-  clearCart: () => void;
+  addItem: (item: Omit<ICartItem, 'quantity'> & { quantity?: number }) => Promise<void>;
+  removeItem: (itemId: string) => Promise<void>;
+  updateItemQuantity: (itemId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   itemCount: number;
+  isLoading: boolean;
 }
 
 // Interface para Resposta da API

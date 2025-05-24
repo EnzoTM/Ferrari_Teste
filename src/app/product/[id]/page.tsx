@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/context/cart-context"
-import { API_ENDPOINTS } from "@/lib/api"
+import { API_ENDPOINTS, API_URL } from "@/lib/api"
 import { IProduct } from "@/types/models"
 import { ChevronLeft, Loader2, Minus, Plus, ShoppingCart } from "lucide-react"
 import Link from "next/link"
@@ -21,6 +21,24 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
+
+  // Helper function to get correct image URL
+  const getImageUrl = (imageName: string) => {
+    if (!imageName) return "/placeholder.svg"
+    
+    // If it's already a full URL, use it
+    if (imageName.startsWith('http')) {
+      return imageName
+    }
+    
+    // If it starts with /public or /api, construct the full URL
+    if (imageName.startsWith('/public') || imageName.startsWith('/api')) {
+      return `${API_URL}${imageName}`
+    }
+    
+    // Otherwise, it's just a filename, construct the full URL
+    return `${API_URL}/public/images/products/${imageName}`
+  }
   
   // Buscar dados do produto pelo ID
   useEffect(() => {
@@ -82,7 +100,7 @@ export default function ProductDetailPage() {
       name: product.name,
       price: product.price,
       image: product.images && product.images.length > 0 
-        ? product.images[0]
+        ? getImageUrl(product.images[0])
         : "/placeholder.svg",
       category: product.type,
       quantity
@@ -140,10 +158,13 @@ export default function ProductDetailPage() {
           <div className="relative mb-4 aspect-square overflow-hidden rounded-lg border">
             {product.images && product.images.length > 0 ? (
               <Image
-                src={product.images[selectedImage]}
+                src={getImageUrl(product.images[selectedImage])}
                 alt={product.name}
                 fill
                 className="object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg"
+                }}
               />
             ) : (
               <div className="flex h-full items-center justify-center bg-gray-100">
@@ -164,10 +185,13 @@ export default function ProductDetailPage() {
                   onClick={() => setSelectedImage(index)}
                 >
                   <Image
-                    src={image}
+                    src={getImageUrl(image)}
                     alt={`${product.name} - imagem ${index + 1}`}
                     fill
                     className="object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg"
+                    }}
                   />
                 </div>
               ))}
@@ -217,7 +241,7 @@ export default function ProductDetailPage() {
                   variant="outline" 
                   size="icon" 
                   onClick={incrementQuantity}
-                  disabled={product.stock && quantity >= product.stock}
+                  disabled={!product.stock || quantity >= product.stock}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>

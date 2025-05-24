@@ -1,305 +1,211 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { ShoppingCart, User, Menu, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useCart } from "@/context/cart-context"
 import { Badge } from "@/components/ui/badge"
+import { Menu, ShoppingCart, User, LogOut } from "lucide-react"
+import { useCart } from "@/context/cart-context"
 import { isAuthenticated, isAdmin, logout } from "@/lib/api"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useToast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 export default function Header() {
-  const pathname = usePathname()
+  const { itemCount } = useCart()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isUserAdmin, setIsUserAdmin] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userIsAdmin, setUserIsAdmin] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
-  const { itemCount } = useCart()
 
-  // Verificar autenticação e status de admin quando o componente montar ou o pathname mudar
   useEffect(() => {
-    // Necessário para evitar erros de hidratação
-    const checkAuth = () => {
+    const checkAuthStatus = () => {
       setIsLoggedIn(isAuthenticated())
-      setUserIsAdmin(isAdmin())
+      setIsUserAdmin(isAdmin())
     }
     
-    // Verificar imediatamente
-    checkAuth()
+    // Check immediately
+    checkAuthStatus()
     
-    // Criar um intervalo para verificar periodicamente
-    const interval = setInterval(checkAuth, 3000)
+    // Listen for storage changes (when user logs in/out in another tab)
+    const handleStorageChange = () => {
+      checkAuthStatus()
+    }
     
-    // Limpar intervalo quando o componente desmontar
-    return () => clearInterval(interval)
-  }, [pathname])
+    // Listen for custom auth state changes
+    const handleAuthStateChange = () => {
+      checkAuthStatus()
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('authStateChanged', handleAuthStateChange)
+    
+    // Also listen for focus events to re-check when user returns to tab
+    window.addEventListener('focus', checkAuthStatus)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('authStateChanged', handleAuthStateChange)
+      window.removeEventListener('focus', checkAuthStatus)
+    }
+  }, [])
 
   const handleLogout = () => {
     logout()
     setIsLoggedIn(false)
-    setUserIsAdmin(false)
+    setIsUserAdmin(false)
+    setMobileMenuOpen(false)
     
     toast({
       title: "Logout realizado",
-      description: "Você saiu da sua conta com sucesso.",
+      description: "Você foi desconectado com sucesso.",
     })
     
-    router.push('/')
+    router.push("/")
   }
 
-  const isActive = (path: string) => {
-    return pathname === path
-  }
-
-  const handleNavigation = (path: string) => {
-    setIsOpen(false)
-  }
+  const navItems = [
+    { href: "/", label: "Início" },
+    { href: "/cars", label: "Carros" },
+    { href: "/formula1", label: "Fórmula 1" },
+    { href: "/helmets", label: "Capacetes" },
+  ]
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white">
-      <div className="container flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center">
+        {/* Logo - Fixed left */}
         <div className="flex items-center">
-          <Link href="/" className="flex items-center">
+          <Link href="/" className="flex items-center space-x-2">
             <Image
-              src="/placeholder.svg?height=40&width=40"
-              alt="Ferrari Logo"
-              width={40}
-              height={40}
-              className="mr-2"
+              src="/logo.png"
+              alt="Ferrari Store"
+              width={32}
+              height={32}
+              className="h-8 w-8"
             />
+            <span className="hidden font-bold sm:inline-block">Ferrari Store</span>
           </Link>
         </div>
-        {/* Desktop Navigation */}
-        <nav className="mx-6 hidden items-center space-x-4 lg:flex lg:space-x-6">
-          <Link
-            href="/"
-            className={cn(
-              "text-sm font-medium transition-colors hover:text-red-600",
-              isActive("/") ? "text-red-600" : "text-gray-700",
-            )}
-          >
-            Home
-          </Link>
-          <Link
-            href="/cars"
-            className={cn(
-              "text-sm font-medium transition-colors hover:text-red-600",
-              isActive("/cars") ? "text-red-600" : "text-gray-700",
-            )}
-          >
-            Cars
-          </Link>
-          <Link
-            href="/formula1"
-            className={cn(
-              "text-sm font-medium transition-colors hover:text-red-600",
-              isActive("/formula1") ? "text-red-600" : "text-gray-700",
-            )}
-          >
-            Formula 1
-          </Link>
-          <Link
-            href="/helmets"
-            className={cn(
-              "text-sm font-medium transition-colors hover:text-red-600",
-              isActive("/helmets") ? "text-red-600" : "text-gray-700",
-            )}
-          >
-            Helmets
-          </Link>
-          {userIsAdmin && (
-            <Link
-              href="/admin"
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-red-600",
-                isActive("/admin") ? "text-red-600" : "text-gray-700",
-              )}
+
+        {/* Mobile Menu Button */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              className="ml-4 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
             >
-              Admin
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="pr-0">
+            <Link
+              href="/"
+              className="flex items-center space-x-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <Image
+                src="/logo.png"
+                alt="Ferrari Store"
+                width={32}
+                height={32}
+                className="h-8 w-8"
+              />
+              <span className="font-bold">Ferrari Store</span>
             </Link>
-          )}
-        </nav>
-        <div className="flex items-center space-x-4">
-          {/* Mobile Menu */}
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild className="lg:hidden">
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[250px] sm:w-[300px]">
-              <div className="flex flex-col space-y-4 py-6">
-                <Link
-                  href="/"
-                  onClick={() => handleNavigation("/")}
-                  className={cn(
-                    "flex items-center px-2 py-2 text-lg font-medium transition-colors hover:text-red-600 text-left",
-                    isActive("/") ? "text-red-600" : "text-gray-700",
-                  )}
-                >
-                  Home
-                </Link>
-                <Link
-                  href="/cars"
-                  onClick={() => handleNavigation("/cars")}
-                  className={cn(
-                    "flex items-center px-2 py-2 text-lg font-medium transition-colors hover:text-red-600 text-left",
-                    isActive("/cars") ? "text-red-600" : "text-gray-700",
-                  )}
-                >
-                  Cars
-                </Link>
-                <Link
-                  href="/formula1"
-                  onClick={() => handleNavigation("/formula1")}
-                  className={cn(
-                    "flex items-center px-2 py-2 text-lg font-medium transition-colors hover:text-red-600 text-left",
-                    isActive("/formula1") ? "text-red-600" : "text-gray-700",
-                  )}
-                >
-                  Formula 1
-                </Link>
-                <Link
-                  href="/helmets"
-                  onClick={() => handleNavigation("/helmets")}
-                  className={cn(
-                    "flex items-center px-2 py-2 text-lg font-medium transition-colors hover:text-red-600 text-left",
-                    isActive("/helmets") ? "text-red-600" : "text-gray-700",
-                  )}
-                >
-                  Helmets
-                </Link>
-                {userIsAdmin && (
+            <nav className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
+              <div className="space-y-3">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="block text-sm font-medium transition-colors hover:text-foreground/80 text-foreground/60"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                {isLoggedIn && isUserAdmin && (
                   <Link
                     href="/admin"
-                    onClick={() => handleNavigation("/admin")}
-                    className={cn(
-                      "flex items-center px-2 py-2 text-lg font-medium transition-colors hover:text-red-600 text-left",
-                      isActive("/admin") ? "text-red-600" : "text-gray-700",
-                    )}
+                    className="block text-sm font-medium transition-colors hover:text-foreground/80 text-foreground/60"
+                    onClick={() => setMobileMenuOpen(false)}
                   >
                     Admin
                   </Link>
                 )}
-                <div className="border-t pt-4">
-                  {isLoggedIn ? (
-                    <>
-                      <Link
-                        href="/profile"
-                        onClick={() => handleNavigation("/profile")}
-                        className="flex items-center px-2 py-2 text-lg font-medium transition-colors hover:text-red-600 text-left w-full"
-                      >
-                        Meu Perfil
-                      </Link>
-                      <button
-                        onClick={() => {
-                          handleLogout();
-                          handleNavigation("/");
-                        }}
-                        className="flex w-full items-center px-2 py-2 text-lg font-medium transition-colors hover:text-red-600 text-left"
-                      >
-                        <LogOut className="mr-2 h-5 w-5" />
-                        Sair
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Link
-                        href="/login"
-                        onClick={() => handleNavigation("/login")}
-                        className="flex items-center px-2 py-2 text-lg font-medium transition-colors hover:text-red-600 text-left w-full"
-                      >
-                        Login
-                      </Link>
-                      <Link
-                        href="/register"
-                        onClick={() => handleNavigation("/register")}
-                        className="flex items-center px-2 py-2 text-lg font-medium transition-colors hover:text-red-600 text-left w-full"
-                      >
-                        Registrar
-                      </Link>
-                    </>
-                  )}
-                  <Link
-                    href="/cart"
-                    onClick={() => handleNavigation("/cart")}
-                    className="flex items-center px-2 py-2 text-lg font-medium transition-colors hover:text-red-600 text-left w-full"
-                  >
-                    Carrinho {itemCount > 0 && `(${itemCount})`}
-                  </Link>
-                </div>
               </div>
-            </SheetContent>
-          </Sheet>
-          
-          {/* User Menu (Desktop) */}
-          <div className="hidden sm:block">
-            {isLoggedIn ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <User className="h-5 w-5" />
-                    <span className="sr-only">User menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">Meu Perfil</Link>
-                  </DropdownMenuItem>
-                  {userIsAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin">Admin</Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sair</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/login">
-                  <Button variant="ghost" size="sm">
-                    Login
-                  </Button>
-                </Link>
-                <Link href="/register">
-                  <Button size="sm" className="bg-red-600 hover:bg-red-700">
-                    Registro
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
-          
-          {/* Cart Link */}
-          <Link href="/cart">
-            <Button variant="ghost" size="icon">
-              <ShoppingCart className="h-5 w-5" />
-              <span className="sr-only">Cart</span>
+            </nav>
+          </SheetContent>
+        </Sheet>
+
+        {/* Centered Navigation - Desktop */}
+        <div className="hidden md:flex flex-1 justify-center">
+          <nav className="flex items-center space-x-8 text-sm font-medium">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        {/* Right side actions */}
+        <div className="flex items-center space-x-2 ml-auto md:ml-0">
+          {/* Cart Button */}
+          <Button variant="ghost" size="icon" asChild className="relative">
+            <Link href="/cart">
+              <ShoppingCart className="h-4 w-4" />
               {itemCount > 0 && (
-                <Badge className="absolute -right-2 -top-2 h-5 w-5 rounded-full bg-red-600 p-0 text-[10px] text-white">
-                  {itemCount}
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -right-2 -top-2 h-5 w-5 rounded-full p-0 text-xs"
+                >
+                  {itemCount > 99 ? "99+" : itemCount}
                 </Badge>
               )}
-            </Button>
-          </Link>
+              <span className="sr-only">Carrinho</span>
+            </Link>
+          </Button>
+
+          {/* User Menu */}
+          {isLoggedIn ? (
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="icon" asChild>
+                <Link href="/profile">
+                  <User className="h-4 w-4" />
+                  <span className="sr-only">Perfil</span>
+                </Link>
+              </Button>
+              
+              {isUserAdmin && (
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/admin">Admin</Link>
+                </Button>
+              )}
+              
+              <Button variant="ghost" size="icon" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+                <span className="sr-only">Sair</span>
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/login">Entrar</Link>
+              </Button>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700" asChild>
+                <Link href="/register">Registrar</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </header>

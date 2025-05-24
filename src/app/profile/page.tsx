@@ -32,22 +32,22 @@ export default function ProfilePage() {
           router.push('/login')
           return
         }
-
-        // Tentar obter os dados do usuário
+        
+        // Get current user data using the token
         try {
-          const userId = localStorage.getItem('userId')
-          if (!userId) {
-            throw new Error('User ID not found')
-          }
-          
-          const response = await fetchWithAuth(`${API_ENDPOINTS.userById(userId)}`)
+          const response = await fetchWithAuth(API_ENDPOINTS.getCurrentUser)
           
           if (!response.ok) {
             throw new Error('Failed to fetch user data')
           }
           
-          const data = await response.json()
-          setUserData(data.user)
+          const userData = await response.json()
+          
+          if (!userData) {
+            throw new Error('User data not found')
+          }
+          
+          setUserData(userData)
         } catch (error) {
           console.error("Error fetching user profile:", error)
           

@@ -1,6 +1,5 @@
 const mongoose = require("../db/conn");
 const { Schema } = mongoose;
-const { ProductSchema } = require('./Product');
 const { AddressSchema } = require('./Address');
 const { PaymentMethodSchema } = require('./PaymentMethod');
 const { OrderItemSchema } = require('./OrderItem');
