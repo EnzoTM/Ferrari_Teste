@@ -12,7 +12,7 @@ export default function Footer() {
           <div className="flex flex-col items-center md:items-start">
             <Link href="/">
               <Image
-                src="/placeholder.svg?height=60&width=60"
+                src="/logo.png?height=60&width=60"
                 alt="Ferrari Logo"
                 width={60}
                 height={60}

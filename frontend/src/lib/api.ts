@@ -139,5 +139,8 @@ export const logout = () => {
     localStorage.removeItem('userData')
     localStorage.removeItem('userId')
     localStorage.removeItem('isAdmin')
+    
+    // Dispatch custom event to notify components about auth state change
+    window.dispatchEvent(new Event('authStateChanged'))
   }
 }

@@ -40,6 +40,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isAuthenticated()) {
       loadCartFromBackend()
+    } else {
+      // If not authenticated, ensure cart is empty
+      setCart({ items: [], total: 0, itemCount: 0 })
+    }
+  }, [])
+
+  // Listen for authentication changes to clear cart when user logs out
+  useEffect(() => {
+    const handleAuthChange = () => {
+      if (!isAuthenticated()) {
+        // Clear cart immediately when user is no longer authenticated
+        setCart({ items: [], total: 0, itemCount: 0 })
+      }
+    }
+
+    window.addEventListener('storage', handleAuthChange)
+    window.addEventListener('authStateChanged', handleAuthChange)
+
+    return () => {
+      window.removeEventListener('storage', handleAuthChange)
+      window.removeEventListener('authStateChanged', handleAuthChange)
     }
   }, [])
 
@@ -51,7 +72,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json()
         
-        const cartItems: ICartItem[] = data.cart.map((item: any) => ({
+        // Filter out items where product is null (deleted products)
+        const validCartItems = data.cart.filter((item: any) => item.product !== null)
+        
+        const cartItems: ICartItem[] = validCartItems.map((item: any) => ({
           id: item._id, // Use cart item's _id, not product._id
           name: item.product.name,
           price: item.product.price,
@@ -61,7 +85,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           category: item.product.type,
           quantity: item.quantity
         }))
-
+        
         const total = cartItems.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0)
         const itemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0)
 

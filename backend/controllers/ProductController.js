@@ -307,6 +307,13 @@ module.exports = class ProductController {
         return res.status(404).json({ message: 'Produto não encontrado' });
       }
 
+      // Remove this product from all users' carts before deleting
+      const User = require('../models/User');
+      await User.updateMany(
+        { 'cart.product': id },
+        { $pull: { cart: { product: id } } }
+      );
+
       // Delete the product
       await Product.findByIdAndDelete(id);
 

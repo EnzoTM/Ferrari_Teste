@@ -174,7 +174,7 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      const { name, email, phone, cpf, password, confirmPassword } = req.body;
+      const { name, email, phone, cpf, password, confirmPassword, admin } = req.body;
 
       // Validações e atualizações
       if (name) {
@@ -199,6 +199,11 @@ module.exports = class UserController {
           return res.status(422).json({ message: 'CPF já está em uso' });
         }
         user.cpf = cpf;
+      }
+
+      // Atualizar campo admin apenas se o usuário que está fazendo a alteração for admin
+      if (typeof admin === 'boolean' && userFromToken.admin) {
+        user.admin = admin;
       }
 
       // Verificar se o usuário enviou imagem
@@ -561,6 +566,15 @@ module.exports = class UserController {
 
       // Populate product details for frontend display
       await user.populate('cart.product');
+      
+      // Filter out items where product is null (deleted products) and clean up the cart
+      const validCartItems = user.cart.filter(item => item.product !== null);
+      
+      // If we found invalid items, update the user's cart to remove them
+      if (validCartItems.length !== user.cart.length) {
+        user.cart = validCartItems;
+        await user.save();
+      }
 
       res.status(200).json({ cart: user.cart });
     } catch (error) {
@@ -692,21 +706,29 @@ module.exports = class UserController {
       for (const order of user.orders) {
         const populatedOrder = { ...order.toObject() };
         
+        // Filter out order items where product no longer exists and populate valid ones
+        const validOrderItems = [];
+        
         for (let i = 0; i < populatedOrder.orderItem.length; i++) {
           const product = await Product.findById(populatedOrder.orderItem[i].product);
           if (product) {
-            populatedOrder.orderItem[i] = {
+            validOrderItems.push({
               ...populatedOrder.orderItem[i],
               productDetails: {
                 name: product.name,
                 price: product.price,
                 images: product.images
               }
-            };
+            });
           }
+          // If product is deleted, we simply don't include it in the valid items
         }
         
-        populatedOrders.push(populatedOrder);
+        // Only include the order if it has at least one valid item
+        if (validOrderItems.length > 0) {
+          populatedOrder.orderItem = validOrderItems;
+          populatedOrders.push(populatedOrder);
+        }
       }
 
       res.status(200).json({ orders: populatedOrders });
@@ -733,22 +755,26 @@ module.exports = class UserController {
         return res.status(404).json({ message: 'Pedido não encontrado' });
       }
 
-      // Populate product details for each order item
+      // Populate product details for each order item, filtering out deleted products
       const populatedOrder = { ...order.toObject() };
+      const validOrderItems = [];
       
       for (let i = 0; i < populatedOrder.orderItem.length; i++) {
         const product = await Product.findById(populatedOrder.orderItem[i].product);
         if (product) {
-          populatedOrder.orderItem[i] = {
+          validOrderItems.push({
             ...populatedOrder.orderItem[i],
             productDetails: {
               name: product.name,
               price: product.price,
               images: product.images
             }
-          };
+          });
         }
+        // If product is deleted, we simply don't include it in the valid items
       }
+      
+      populatedOrder.orderItem = validOrderItems;
 
       res.status(200).json({ order: populatedOrder });
     } catch (error) {

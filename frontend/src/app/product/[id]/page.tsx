@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import { ChevronLeft, Loader2, Minus, Plus, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params
+  const { id } = use(params)
   const router = useRouter()
   const { toast } = useToast()
   const { addItem } = useCart()

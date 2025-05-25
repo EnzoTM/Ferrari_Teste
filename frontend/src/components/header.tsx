@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Menu, ShoppingCart, User, LogOut } from "lucide-react"
 import { useCart } from "@/context/cart-context"
@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
 export default function Header() {
-  const { itemCount } = useCart()
+  const { itemCount, clearCart } = useCart()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isUserAdmin, setIsUserAdmin] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -52,7 +52,16 @@ export default function Header() {
     }
   }, [])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Clear cart from backend and local state
+      await clearCart()
+    } catch (error) {
+      console.error("Error clearing cart during logout:", error)
+      // Continue with logout even if cart clearing fails
+    }
+    
+    // Clear authentication data
     logout()
     setIsLoggedIn(false)
     setIsUserAdmin(false)
@@ -60,7 +69,7 @@ export default function Header() {
     
     toast({
       title: "Logout realizado",
-      description: "Você foi desconectado com sucesso.",
+      description: "Você foi desconectado e seu carrinho foi esvaziado.",
     })
     
     router.push("/")
@@ -80,13 +89,13 @@ export default function Header() {
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2">
             <Image
-              src="/logo.png"
+              src="/logo.png?height=60&width=60"
               alt="Ferrari Store"
-              width={32}
-              height={32}
-              className="h-8 w-8"
+              width={60}
+              height={60}
+              className="h-8 w-8 object-contain"
             />
-            <span className="hidden font-bold sm:inline-block">Ferrari Store</span>
+            <span className="hidden font-bold md:inline-block">Ferrari Store</span>
           </Link>
         </div>
 
@@ -102,17 +111,18 @@ export default function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="pr-0">
+            <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
             <Link
               href="/"
               className="flex items-center space-x-2"
               onClick={() => setMobileMenuOpen(false)}
             >
               <Image
-                src="/logo.png"
+                src="/logo.png?height=60&width=60"
                 alt="Ferrari Store"
-                width={32}
-                height={32}
-                className="h-8 w-8"
+                width={60}
+                height={60}
+                className="h-8 w-8 object-contain"
               />
               <span className="font-bold">Ferrari Store</span>
             </Link>
@@ -166,7 +176,7 @@ export default function Header() {
               {itemCount > 0 && (
                 <Badge 
                   variant="destructive" 
-                  className="absolute -right-2 -top-2 h-5 w-5 rounded-full p-0 text-xs"
+                  className="absolute -right-2 -top-2 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
                 >
                   {itemCount > 99 ? "99+" : itemCount}
                 </Badge>
