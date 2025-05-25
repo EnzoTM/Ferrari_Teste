@@ -3,14 +3,14 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ShoppingBag } from "lucide-react"
+import { ShoppingBag, Package } from "lucide-react"
 
 interface OrderHistoryProps {
   userData: any
 }
 
 export default function OrderHistory({ userData }: OrderHistoryProps) {
-  const [orders, setOrders] = useState(userData?.shopping || [])
+  const [orders, setOrders] = useState(userData?.orders || [])
 
   if (!userData) {
     return (
@@ -42,16 +42,57 @@ export default function OrderHistory({ userData }: OrderHistoryProps) {
       {orders.map((order: any, index: number) => (
         <Card key={index} className="overflow-hidden">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">{order.product?.name}</p>
-                <p className="text-sm text-gray-500">
-                  {new Date(order.createdAt).toLocaleDateString('pt-BR')}
-                </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Pedido #{order._id?.slice(-8).toUpperCase() || `#${index + 1}`}</p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">R$ {order.totalPrice?.toFixed(2) || '0,00'}</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="font-medium">R$ {order.product?.price.toFixed(2)}</p>
-                <p className="text-sm">Qtd: {order.product?.quantity}</p>
+              
+              {/* Order Items */}
+              <div className="space-y-2">
+                {order.orderItem?.map((item: any, itemIndex: number) => (
+                  <div key={itemIndex} className={`flex items-center gap-3 p-2 bg-gray-50 rounded ${item.productDetails?.unavailable ? 'opacity-60' : ''}`}>
+                    <div className="relative h-12 w-12 overflow-hidden rounded bg-gray-100">
+                      {item.productDetails?.images && item.productDetails.images.length > 0 && !item.productDetails.unavailable ? (
+                        <img
+                          src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/public/images/products/${item.productDetails.images[0]}`}
+                          alt={item.productDetails.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-gray-200">
+                          <Package className="h-5 w-5 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-sm font-medium ${item.productDetails?.unavailable ? 'text-gray-500' : ''}`}>
+                        {item.productDetails?.name || 'Produto não disponível'}
+                      </p>
+                      <p className="text-xs text-gray-600">Qtd: {item.quantity}</p>
+                      {item.productDetails?.unavailable && (
+                        <p className="text-xs text-red-500">Este produto não está mais disponível</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-sm font-medium ${item.productDetails?.unavailable ? 'text-gray-400' : ''}`}>
+                        {item.productDetails && !item.productDetails.unavailable 
+                          ? `R$ ${(item.productDetails.price * item.quantity).toFixed(2)}`
+                          : '-'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                )) || (
+                  <p className="text-sm text-gray-500">Nenhum item encontrado neste pedido</p>
+                )}
               </div>
             </div>
           </CardContent>

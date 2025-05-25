@@ -17,6 +17,7 @@ interface Order {
       name: string
       price: number
       images: string[]
+      unavailable?: boolean
     }
   }>
   totalPrice: number

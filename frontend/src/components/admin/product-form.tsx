@@ -427,7 +427,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-1">
             <div className="space-y-2">
               <Label htmlFor="stock">Stock Quantity</Label>
               <Input
@@ -442,7 +442,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
                 disabled={isSubmitting}
               />
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="sold">Units Sold</Label>
               <Input
                 id="sold"
@@ -454,7 +454,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
                 placeholder="0"
                 disabled={isSubmitting}
               />
-            </div>
+            </div> */}
           </div>
 
           <div className="space-y-2">

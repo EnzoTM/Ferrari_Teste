@@ -706,13 +706,13 @@ module.exports = class UserController {
       for (const order of user.orders) {
         const populatedOrder = { ...order.toObject() };
         
-        // Filter out order items where product no longer exists and populate valid ones
-        const validOrderItems = [];
+        // Include all order items, marking deleted products as unavailable
+        const allOrderItems = [];
         
         for (let i = 0; i < populatedOrder.orderItem.length; i++) {
           const product = await Product.findById(populatedOrder.orderItem[i].product);
           if (product) {
-            validOrderItems.push({
+            allOrderItems.push({
               ...populatedOrder.orderItem[i],
               productDetails: {
                 name: product.name,
@@ -720,15 +720,23 @@ module.exports = class UserController {
                 images: product.images
               }
             });
+          } else {
+            // Product was deleted, show as unavailable
+            allOrderItems.push({
+              ...populatedOrder.orderItem[i],
+              productDetails: {
+                name: 'Produto não disponível',
+                price: 0,
+                images: [],
+                unavailable: true
+              }
+            });
           }
-          // If product is deleted, we simply don't include it in the valid items
         }
         
-        // Only include the order if it has at least one valid item
-        if (validOrderItems.length > 0) {
-          populatedOrder.orderItem = validOrderItems;
-          populatedOrders.push(populatedOrder);
-        }
+        // Include the order even if some products are unavailable
+        populatedOrder.orderItem = allOrderItems;
+        populatedOrders.push(populatedOrder);
       }
 
       res.status(200).json({ orders: populatedOrders });
@@ -755,14 +763,14 @@ module.exports = class UserController {
         return res.status(404).json({ message: 'Pedido não encontrado' });
       }
 
-      // Populate product details for each order item, filtering out deleted products
+      // Populate product details for each order item, including unavailable products
       const populatedOrder = { ...order.toObject() };
-      const validOrderItems = [];
+      const allOrderItems = [];
       
       for (let i = 0; i < populatedOrder.orderItem.length; i++) {
         const product = await Product.findById(populatedOrder.orderItem[i].product);
         if (product) {
-          validOrderItems.push({
+          allOrderItems.push({
             ...populatedOrder.orderItem[i],
             productDetails: {
               name: product.name,
@@ -770,11 +778,21 @@ module.exports = class UserController {
               images: product.images
             }
           });
+        } else {
+          // Product was deleted, show as unavailable
+          allOrderItems.push({
+            ...populatedOrder.orderItem[i],
+            productDetails: {
+              name: 'Produto não disponível',
+              price: 0,
+              images: [],
+              unavailable: true
+            }
+          });
         }
-        // If product is deleted, we simply don't include it in the valid items
       }
       
-      populatedOrder.orderItem = validOrderItems;
+      populatedOrder.orderItem = allOrderItems;
 
       res.status(200).json({ order: populatedOrder });
     } catch (error) {

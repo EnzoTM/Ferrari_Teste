@@ -25,6 +25,7 @@ interface Order {
       name: string
       price: number
       images: string[]
+      unavailable?: boolean
     }
   }>
   totalPrice: number
@@ -147,28 +148,39 @@ export default function OrderSuccessPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {order.orderItem.map((item, index) => (
-                <div key={index} className="flex items-center gap-4 pb-4 border-b last:border-b-0 last:pb-0">
+                <div key={index} className={`flex items-center gap-4 pb-4 border-b last:border-b-0 last:pb-0 ${item.productDetails?.unavailable ? 'opacity-60' : ''}`}>
                   <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
-                    {item.productDetails?.images && item.productDetails.images.length > 0 && (
+                    {item.productDetails?.images && item.productDetails.images.length > 0 && !item.productDetails.unavailable ? (
                       <img
                         src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/public/images/products/${item.productDetails.images[0]}`}
                         alt={item.productDetails.name}
                         className="h-full w-full object-cover"
                       />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-gray-200">
+                        <Package className="h-6 w-6 text-gray-400" />
+                      </div>
                     )}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-medium">{item.productDetails?.name || 'Produto'}</h3>
+                    <h3 className={`font-medium ${item.productDetails?.unavailable ? 'text-gray-500' : ''}`}>
+                      {item.productDetails?.name || 'Produto'}
+                    </h3>
                     <p className="text-sm text-gray-600">
                       Quantidade: {item.quantity}
                     </p>
+                    {item.productDetails?.unavailable && (
+                      <p className="text-xs text-red-500 mt-1">
+                        Este produto não está mais disponível
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">
-                      {item.productDetails ? formatCurrency(item.productDetails.price * item.quantity) : '-'}
+                    <p className={`font-medium ${item.productDetails?.unavailable ? 'text-gray-400' : ''}`}>
+                      {item.productDetails && !item.productDetails.unavailable ? formatCurrency(item.productDetails.price * item.quantity) : '-'}
                     </p>
-                    <p className="text-sm text-gray-600">
-                      {item.productDetails ? formatCurrency(item.productDetails.price) : '-'} cada
+                    <p className={`text-sm text-gray-600 ${item.productDetails?.unavailable ? 'text-gray-400' : ''}`}>
+                      {item.productDetails && !item.productDetails.unavailable ? formatCurrency(item.productDetails.price) : '-'} cada
                     </p>
                   </div>
                 </div>
