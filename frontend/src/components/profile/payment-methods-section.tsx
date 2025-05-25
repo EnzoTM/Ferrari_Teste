@@ -314,22 +314,22 @@ export default function PaymentMethodSection() {
                 <Input
                   id="cardNumber"
                   name="cardNumber"
+                  placeholder="0000 0000 0000 0000"
                   value={currentPayment?.cardNumber || ""}
                   onChange={handleInputChange}
-                  placeholder="0000 0000 0000 0000"
                 />
                 {formErrors.cardNumber && (
                   <p className="text-xs text-red-600">{formErrors.cardNumber}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cardHolderName">Nome do Titular *</Label>
+                <Label htmlFor="cardHolderName">Nome no Cartão *</Label>
                 <Input
                   id="cardHolderName"
                   name="cardHolderName"
+                  placeholder="João Silva Santos"
                   value={currentPayment?.cardHolderName || ""}
                   onChange={handleInputChange}
-                  placeholder="Nome como está no cartão"
                 />
                 {formErrors.cardHolderName && (
                   <p className="text-xs text-red-600">{formErrors.cardHolderName}</p>
@@ -337,27 +337,29 @@ export default function PaymentMethodSection() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="expirationDate">Validade *</Label>
+                  <Label htmlFor="expirationDate">Data de Validade *</Label>
                   <Input
                     id="expirationDate"
                     name="expirationDate"
+                    placeholder="MM/AA"
                     value={currentPayment?.expirationDate || ""}
                     onChange={handleInputChange}
-                    placeholder="MM/AA"
+                    maxLength={5}
                   />
                   {formErrors.expirationDate && (
                     <p className="text-xs text-red-600">{formErrors.expirationDate}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cvv">CVV *</Label>
+                  <Label htmlFor="cvv">Código de Segurança *</Label>
                   <Input
                     id="cvv"
                     name="cvv"
                     type="password"
+                    placeholder="123"
                     value={currentPayment?.cvv || ""}
                     onChange={handleInputChange}
-                    placeholder="123"
+                    maxLength={4}
                   />
                   {formErrors.cvv && (
                     <p className="text-xs text-red-600">{formErrors.cvv}</p>

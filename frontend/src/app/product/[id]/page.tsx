@@ -1,18 +1,22 @@
 "use client"
 
-import { useState, useEffect, use } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { useCart } from "@/context/cart-context"
 import { API_URL } from "@/lib/api"
 import { IProduct } from "@/types/models"
-import { ChevronLeft, Loader2, Minus, Plus, ShoppingCart } from "lucide-react"
+import { ChevronLeft, Loader2, Minus, Plus, ShoppingCart, Play, Pause, Volume2 } from "lucide-react"
 import Link from "next/link"
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
-  const { id } = use(params)
+interface ProductDetailPageProps {
+  params: Promise<{ id: string }>
+}
+
+export default function ProductDetailPage({ params }: ProductDetailPageProps) {
+  const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null)
   const router = useRouter()
   const { toast } = useToast()
   const { addItem } = useCart()
@@ -21,6 +25,13 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Resolve params first
+  useEffect(() => {
+    params.then(setResolvedParams)
+  }, [params])
 
   // Helper function to get correct image URL
   const getImageUrl = (imageName: string) => {
@@ -40,12 +51,38 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     return `${API_URL}/public/images/products/${imageName}`
   }
 
+  // Get the sound file URL
+  const getSoundUrl = () => {
+    if (product?.soundFile) {
+      return `${API_URL}/public/sounds/${product.soundFile}`
+    }
+    return null
+  }
+
+  const toggleAudio = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause()
+        setIsPlaying(false)
+      } else {
+        audioRef.current.play()
+        setIsPlaying(true)
+      }
+    }
+  }
+
+  const handleAudioEnded = () => {
+    setIsPlaying(false)
+  }
+
   useEffect(() => {
+    if (!resolvedParams?.id) return
+
     const fetchProduct = async () => {
       try {
         setLoading(true)
         const apiUrl = API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-        const response = await fetch(`${apiUrl}/api/products/${id}`)
+        const response = await fetch(`${apiUrl}/api/products/${resolvedParams.id}`)
         
         if (!response.ok) {
           throw new Error(`Failed to fetch product: ${response.status}`)
@@ -76,10 +113,8 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       }
     }
 
-    if (id) {
-      fetchProduct()
-    }
-  }, [id, router, toast])
+    fetchProduct()
+  }, [resolvedParams?.id, router, toast])
 
   const handleAddToCart = () => {
     if (!product) return
@@ -89,7 +124,8 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       name: product.name,
       price: product.price,
       image: product.images?.[0] || '',
-      quantity: quantity
+      quantity: quantity,
+      category: product.type
     })
 
     toast({
@@ -190,6 +226,47 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               R$ {product.price.toFixed(2)}
             </p>
           </div>
+
+          {/* Engine Sound Section */}
+          {product.soundFile && (
+            <div className="p-4 bg-gray-50 rounded-lg border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="h-5 w-5 text-red-600" />
+                  <span className="font-medium text-gray-900">Som do Motor</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleAudio}
+                  className="flex items-center gap-2"
+                >
+                  {isPlaying ? (
+                    <>
+                      <Pause className="h-4 w-4" />
+                      Pausar
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4" />
+                      Reproduzir
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Ouça o som autêntico do motor deste modelo Ferrari
+              </p>
+              
+              {/* Hidden audio element */}
+              <audio
+                ref={audioRef}
+                src={getSoundUrl()!}
+                onEnded={handleAudioEnded}
+                preload="none"
+              />
+            </div>
+          )}
 
           <div className="prose prose-sm">
             <p className="text-gray-600">{product.description}</p>

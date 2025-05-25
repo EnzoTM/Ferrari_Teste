@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { API_ENDPOINTS } from "@/lib/api"
 import { Loader2 } from "lucide-react"
 
@@ -19,13 +19,38 @@ export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
 
+  // Validação de email
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!email || !password) {
       toast({
         title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos.",
+        description: "Por favor, preencha seu email e senha para continuar.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validação de email
+    if (!isValidEmail(email)) {
+      toast({
+        title: "Email inválido",
+        description: "Por favor, insira um email válido (exemplo: usuario@email.com).",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (password.length < 8) {
+      toast({
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 8 caracteres.",
         variant: "destructive",
       })
       return
@@ -80,13 +105,30 @@ export default function LoginPage() {
           router.push('/')
         }
       } else {
-        throw new Error(data.message || "Falha no login")
+        // Mensagens de erro específicas baseadas na resposta do servidor
+        let errorMessage = "Email ou senha incorretos. Verifique suas credenciais e tente novamente."
+        
+        if (data.message) {
+          if (data.message.includes("Usuário não encontrado")) {
+            errorMessage = "Este email não está cadastrado. Verifique o email ou crie uma nova conta."
+          } else if (data.message.includes("Senha inválida")) {
+            errorMessage = "Senha incorreta. Verifique sua senha e tente novamente."
+          } else if (data.message.includes("Email") && data.message.includes("obrigatório")) {
+            errorMessage = "Por favor, digite seu email."
+          } else if (data.message.includes("senha") && data.message.includes("obrigatório")) {
+            errorMessage = "Por favor, digite sua senha."
+          } else {
+            errorMessage = data.message
+          }
+        }
+        
+        throw new Error(errorMessage)
       }
     } catch (error) {
       console.error("Erro ao fazer login:", error)
       toast({
         title: "Erro ao fazer login",
-        description: error instanceof Error ? error.message : "Email ou senha inválidos.",
+        description: error instanceof Error ? error.message : "Email ou senha incorretos. Verifique suas credenciais.",
         variant: "destructive",
       })
     } finally {
@@ -110,6 +152,7 @@ export default function LoginPage() {
               <Input 
                 id="email" 
                 type="email"
+                placeholder="seu@email.com"
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
                 required 
@@ -118,13 +161,11 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
-                <Link href="#" className="text-sm text-red-600 hover:text-red-800">
-                  Esqueceu a senha?
-                </Link>
               </div>
               <Input
                 id="password"
                 type="password"
+                placeholder="Digite sua senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

@@ -51,8 +51,30 @@ module.exports = class ProductController {
 
       // Obter imagens do produto
       let images = [];
+      let soundFile = null;
+      
       if (req.files) {
-        images = req.files.map(file => file.filename);
+        // req.files pode ser um objeto ou array dependendo de como o multer está configurado
+        if (Array.isArray(req.files)) {
+          // Se for array, usar forEach como antes
+          req.files.forEach(file => {
+            if (file.fieldname === 'images') {
+              images.push(file.filename);
+            } else if (file.fieldname === 'soundFile') {
+              soundFile = file.filename;
+            }
+          });
+        } else if (typeof req.files === 'object') {
+          // Se for objeto, acessar propriedades específicas
+          if (req.files.images) {
+            req.files.images.forEach(file => {
+              images.push(file.filename);
+            });
+          }
+          if (req.files.soundFile && req.files.soundFile[0]) {
+            soundFile = req.files.soundFile[0].filename;
+          }
+        }
       }
 
       if (images.length === 0) {
@@ -60,7 +82,7 @@ module.exports = class ProductController {
       }
 
       // Criar o produto
-      const product = new Product({
+      const productData = {
         name,
         price,
         description,
@@ -69,7 +91,14 @@ module.exports = class ProductController {
         featured,
         stock,
         sold: 0,
-      });
+      };
+
+      // Adicionar soundFile apenas se fornecido
+      if (soundFile) {
+        productData.soundFile = soundFile;
+      }
+
+      const product = new Product(productData);
 
       await product.save();
       res.status(201).json({ 
@@ -212,10 +241,51 @@ module.exports = class ProductController {
       if (featured !== undefined) product.featured = featured;
       if (stock !== undefined) product.stock = stock;
 
-      // Adicionar novas imagens se enviadas
-      if (req.files && req.files.length > 0) {
-        const newImages = req.files.map(file => file.filename);
-        product.images = [...product.images, ...newImages];
+      // Processar novos arquivos se enviados
+      if (req.files) {
+        // req.files pode ser um objeto ou array dependendo de como o multer está configurado
+        if (Array.isArray(req.files)) {
+          // Se for array, usar forEach como antes
+          req.files.forEach(file => {
+            if (file.fieldname === 'images') {
+              product.images.push(file.filename);
+            } else if (file.fieldname === 'soundFile') {
+              // Remover arquivo de áudio anterior se existir
+              if (product.soundFile) {
+                try {
+                  const oldSoundPath = path.join(__dirname, '../../public/sounds', product.soundFile);
+                  if (fs.existsSync(oldSoundPath)) {
+                    fs.unlinkSync(oldSoundPath);
+                  }
+                } catch (error) {
+                  console.error('Error removing old sound file:', error);
+                }
+              }
+              product.soundFile = file.filename;
+            }
+          });
+        } else if (typeof req.files === 'object') {
+          // Se for objeto, acessar propriedades específicas
+          if (req.files.images) {
+            req.files.images.forEach(file => {
+              product.images.push(file.filename);
+            });
+          }
+          if (req.files.soundFile && req.files.soundFile[0]) {
+            // Remover arquivo de áudio anterior se existir
+            if (product.soundFile) {
+              try {
+                const oldSoundPath = path.join(__dirname, '../../public/sounds', product.soundFile);
+                if (fs.existsSync(oldSoundPath)) {
+                  fs.unlinkSync(oldSoundPath);
+                }
+              } catch (error) {
+                console.error('Error removing old sound file:', error);
+              }
+            }
+            product.soundFile = req.files.soundFile[0].filename;
+          }
+        }
       }
 
       await product.save();
@@ -285,6 +355,54 @@ module.exports = class ProductController {
     }
   }
 
+  // Remover arquivo de áudio do produto
+  static async removeSoundFile(req, res) {
+    try {
+      const { id } = req.params;
+      
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(422).json({ message: 'ID inválido' });
+      }
+
+      const token = getToken(req);
+      const user = await getUserByToken(token);
+
+      if (!user || !user.admin) {
+        return res.status(401).json({ message: 'Acesso negado' });
+      }
+
+      const product = await Product.findById(id);
+      
+      if (!product) {
+        return res.status(404).json({ message: 'Produto não encontrado' });
+      }
+
+      if (!product.soundFile) {
+        return res.status(404).json({ message: 'Produto não possui arquivo de áudio' });
+      }
+
+      const soundFileName = product.soundFile;
+
+      // Remover soundFile do produto
+      product.soundFile = undefined;
+      await product.save();
+
+      // Tentar remover o arquivo do sistema de arquivos
+      try {
+        const soundPath = path.join(__dirname, '../../public/sounds', soundFileName);
+        if (fs.existsSync(soundPath)) {
+          fs.unlinkSync(soundPath);
+        }
+      } catch (error) {
+        console.error('Error removing sound file:', error);
+      }
+
+      res.status(200).json({ message: 'Arquivo de áudio removido com sucesso', product });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
   // Excluir produto
   static async delete(req, res) {
     try {
@@ -328,6 +446,18 @@ module.exports = class ProductController {
       } catch (error) {
         console.error('Error removing image files:', error);
         // Continue execution even if file removal fails
+      }
+
+      // Attempt to remove the sound file from the filesystem
+      if (product.soundFile) {
+        try {
+          const soundPath = path.join(__dirname, '../../public/sounds', product.soundFile);
+          if (fs.existsSync(soundPath)) {
+            fs.unlinkSync(soundPath);
+          }
+        } catch (error) {
+          console.error('Error removing sound file:', error);
+        }
       }
 
       res.status(200).json({ message: 'Produto removido com sucesso' });

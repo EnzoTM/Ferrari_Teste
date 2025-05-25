@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -33,15 +32,16 @@ export default function ProductForm({ category, title, editMode = false, product
     stock: "10",
     sold: "0",
     hasSound: category !== "helmets",
-    soundFile: "",
   })
   
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
-  const [existingImages, setExistingImages] = useState<string[]>([]) // Track existing images separately
+  const [existingImages, setExistingImages] = useState<string[]>([])
+  const [soundFile, setSoundFile] = useState<File | null>(null)
+  const [existingSoundFile, setExistingSoundFile] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [soundFileName, setSoundFileName] = useState<string>("")
+  const soundInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -69,12 +69,12 @@ export default function ProductForm({ category, title, editMode = false, product
           if (!response.ok) {
             throw new Error(`Failed to fetch product: ${response.status}`)
           }
-
+          
           const contentType = response.headers.get("content-type")
           if (!contentType || !contentType.includes("application/json")) {
             throw new Error("Server returned invalid response format")
           }
-
+          
           const data = await response.json()
           
           if (data.product) {
@@ -87,7 +87,6 @@ export default function ProductForm({ category, title, editMode = false, product
               stock: product.stock !== undefined ? product.stock.toString() : "10",
               sold: product.sold !== undefined ? product.sold.toString() : "0",
               hasSound: !!product.soundFile,
-              soundFile: product.soundFile || "",
             })
             
             // Set image previews for existing product
@@ -96,10 +95,13 @@ export default function ProductForm({ category, title, editMode = false, product
                 img.startsWith('http') ? img : `${API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/public/images/products/${img}`
               )
               setImagePreviews(imageUrls)
-              setExistingImages([...product.images]) // Store original filenames
+              setExistingImages([...product.images])
             }
             
-            setSoundFileName(product.soundFile ? "sound-file.mp3" : "")
+            // Set existing sound file
+            if (product.soundFile) {
+              setExistingSoundFile(product.soundFile)
+            }
           }
         } catch (error) {
           console.error("Error fetching product:", error)
@@ -132,8 +134,29 @@ export default function ProductForm({ category, title, editMode = false, product
   const handleSoundFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setSoundFileName(file.name)
-      setFormData((prev) => ({ ...prev, soundFile: `/sounds/${file.name}` }))
+      // Validar tipo de arquivo
+      const allowedTypes = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/mpeg']
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Formato inválido",
+          description: "Por favor, envie apenas arquivos MP3, WAV, OGG ou M4A",
+          variant: "destructive",
+        })
+        return
+      }
+      
+      // Validar tamanho (máximo 5MB)
+      const maxSize = 5 * 1024 * 1024 // 5MB
+      if (file.size > maxSize) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O arquivo de áudio deve ter no máximo 5MB",
+          variant: "destructive",
+        })
+        return
+      }
+      
+      setSoundFile(file)
     }
   }
 
@@ -164,7 +187,7 @@ export default function ProductForm({ category, title, editMode = false, product
 
   const removeImage = async (index: number) => {
     const isExistingImage = editMode && index < existingImages.length
-
+    
     if (isExistingImage) {
       // Remove existing image from server
       try {
@@ -203,6 +226,42 @@ export default function ProductForm({ category, title, editMode = false, product
       const newImageIndex = index - existingImages.length
       setImageFiles((prev) => prev.filter((_, i) => i !== newImageIndex))
       setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+    }
+  }
+
+  const removeSoundFile = async () => {
+    if (editMode && existingSoundFile) {
+      // Remove sound file from server
+      try {
+        const response = await fetchWithAuth(`${API_ENDPOINTS.product(productId!)}/remove-sound`, {
+          method: 'DELETE',
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || 'Failed to delete sound file')
+        }
+
+        setExistingSoundFile("")
+        
+        toast({
+          title: "Arquivo de áudio removido",
+          description: "O arquivo de áudio foi removido com sucesso",
+        })
+      } catch (error) {
+        console.error("Error deleting sound file:", error)
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to delete sound file",
+          variant: "destructive",
+        })
+      }
+    } else {
+      // Remove new sound file (not yet uploaded)
+      setSoundFile(null)
+      if (soundInputRef.current) {
+        soundInputRef.current.value = ""
+      }
     }
   }
 
@@ -248,8 +307,8 @@ export default function ProductForm({ category, title, editMode = false, product
       })
 
       // Add sound file if provided
-      if (formData.hasSound && formData.soundFile) {
-        apiFormData.append('soundFile', formData.soundFile)
+      if (formData.hasSound && soundFile) {
+        apiFormData.append('soundFile', soundFile)
       }
 
       let response
@@ -275,7 +334,6 @@ export default function ProductForm({ category, title, editMode = false, product
           const errorData = JSON.parse(errorText)
           errorMessage = errorData.message || errorMessage
         } catch {
-          // If it's not JSON, use the text as the error message
           errorMessage = errorText || errorMessage
         }
         
@@ -283,7 +341,7 @@ export default function ProductForm({ category, title, editMode = false, product
       }
 
       const data = await response.json()
-
+      
       toast({
         title: editMode ? "Product updated" : "Product created",
         description: data.message || `${formData.name} has been ${editMode ? 'updated' : 'added'} successfully`,
@@ -299,12 +357,12 @@ export default function ProductForm({ category, title, editMode = false, product
           stock: "10",
           sold: "0",
           hasSound: category !== "helmets",
-          soundFile: "",
         })
-        setSoundFileName("")
+        setSoundFile(null)
         setImageFiles([])
         setImagePreviews([])
         setExistingImages([])
+        setExistingSoundFile("")
       }
 
       // Redirect to admin products page
@@ -328,6 +386,7 @@ export default function ProductForm({ category, title, editMode = false, product
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {/* ...existing form fields... */}
           <div className="space-y-2">
             <Label htmlFor="name">Product Name</Label>
             <Input
@@ -401,6 +460,7 @@ export default function ProductForm({ category, title, editMode = false, product
             />
           </div>
 
+          {/* ...existing image upload section... */}
           <div className="space-y-2">
             <Label className="block mb-2">Product Images</Label>
             <div className="grid grid-cols-3 gap-4">
@@ -464,6 +524,7 @@ export default function ProductForm({ category, title, editMode = false, product
             <Label htmlFor="featured">Featured Product</Label>
           </div>
 
+          {/* Audio upload section */}
           {category !== "helmets" && (
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
@@ -475,36 +536,70 @@ export default function ProductForm({ category, title, editMode = false, product
                 />
                 <Label htmlFor="hasSound">Has Engine Sound</Label>
               </div>
+              
               {formData.hasSound && (
                 <div className="space-y-2 rounded-md border p-4">
                   <Label htmlFor="soundFile" className="flex items-center">
                     <Volume2 className="mr-2 h-4 w-4" />
                     Engine Sound File
                   </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="soundFile"
-                      type="file"
-                      accept="audio/*"
-                      onChange={handleSoundFileChange}
-                      className="flex-1"
-                      disabled={isSubmitting}
-                    />
-                    {soundFileName && (
-                      <Alert className="flex-1 py-2">
-                        <AlertDescription className="flex items-center text-xs">
-                          <Volume2 className="mr-2 h-4 w-4" />
-                          {soundFileName}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500">Upload an MP3 file of the engine sound. Maximum size: 5MB</p>
+                  
+                  {/* Show existing sound file */}
+                  {existingSoundFile && (
+                    <Alert className="mb-2">
+                      <Volume2 className="h-4 w-4" />
+                      <AlertDescription className="flex items-center justify-between">
+                        <span>Arquivo atual: {existingSoundFile}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={removeSoundFile}
+                          disabled={isSubmitting}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {/* Show new sound file */}
+                  {soundFile && (
+                    <Alert className="mb-2">
+                      <Volume2 className="h-4 w-4" />
+                      <AlertDescription className="flex items-center justify-between">
+                        <span>Novo arquivo: {soundFile.name}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={removeSoundFile}
+                          disabled={isSubmitting}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  <Input
+                    ref={soundInputRef}
+                    id="soundFile"
+                    type="file"
+                    accept="audio/mp3,audio/wav,audio/ogg,audio/mp4,audio/mpeg"
+                    onChange={handleSoundFileChange}
+                    disabled={isSubmitting}
+                  />
+                  
+                  <p className="text-xs text-gray-500">
+                    Upload an MP3, WAV, OGG or M4A file of the engine sound. Maximum size: 5MB
+                  </p>
                 </div>
               )}
             </div>
           )}
         </CardContent>
+        
         <CardFooter className="flex justify-between">
           <Button 
             type="button" 

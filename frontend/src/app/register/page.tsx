@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { API_ENDPOINTS } from "@/lib/api"
 import { Loader2 } from "lucide-react"
 
@@ -30,6 +30,24 @@ export default function RegisterPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Validação de email
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  // Validação de telefone
+  const isValidPhone = (phone: string) => {
+    const phoneClean = phone.replace(/[^\d]/g, "")
+    return phoneClean.length >= 10 && phoneClean.length <= 11
+  }
+
+  // Validação de CPF
+  const isValidCPF = (cpf: string) => {
+    const cpfClean = cpf.replace(/[^\d]/g, "")
+    return cpfClean.length === 11
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -37,16 +55,37 @@ export default function RegisterPage() {
     if (!formData.name || !formData.email || !formData.phone || !formData.cpf || !formData.password) {
       toast({
         title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos.",
+        description: "Por favor, preencha todos os campos obrigatórios.",
         variant: "destructive",
       })
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    // Validação de email
+    if (!isValidEmail(formData.email)) {
       toast({
-        title: "Senhas não coincidem",
-        description: "A senha e a confirmação devem ser iguais.",
+        title: "Email inválido",
+        description: "Por favor, insira um email válido (exemplo: usuario@email.com).",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validação de telefone
+    if (!isValidPhone(formData.phone)) {
+      toast({
+        title: "Telefone inválido",
+        description: "Por favor, insira um telefone válido com DDD (exemplo: 11987654321).",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validar formato de CPF
+    if (!isValidCPF(formData.cpf)) {
+      toast({
+        title: "CPF inválido",
+        description: "Por favor, insira um CPF válido com 11 dígitos (apenas números).",
         variant: "destructive",
       })
       return
@@ -55,18 +94,16 @@ export default function RegisterPage() {
     if (formData.password.length < 8) {
       toast({
         title: "Senha muito curta",
-        description: "A senha deve ter pelo menos 8 caracteres.",
+        description: "A senha deve ter pelo menos 8 caracteres para maior segurança.",
         variant: "destructive",
       })
       return
     }
 
-    // Validar formato de CPF simplificado
-    const cpfClean = formData.cpf.replace(/[^\d]/g, "")
-    if (cpfClean.length !== 11) {
+    if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "CPF inválido",
-        description: "Por favor, insira um CPF válido.",
+        title: "Senhas não coincidem",
+        description: "A senha e a confirmação devem ser exatamente iguais.",
         variant: "destructive",
       })
       return
@@ -122,7 +159,20 @@ export default function RegisterPage() {
         
         router.push("/")
       } else {
-        throw new Error(data.message || "Erro ao registrar")
+        // Mensagens de erro específicas baseadas na resposta do servidor
+        let errorMessage = "Ocorreu um erro ao criar sua conta. Tente novamente."
+        
+        if (data.message) {
+          if (data.message.includes("Email já cadastrado")) {
+            errorMessage = "Este email já está em uso. Tente fazer login ou use outro email."
+          } else if (data.message.includes("CPF já cadastrado")) {
+            errorMessage = "Este CPF já está cadastrado. Tente fazer login ou verifique os dados."
+          } else {
+            errorMessage = data.message
+          }
+        }
+        
+        throw new Error(errorMessage)
       }
     } catch (error) {
       console.error("Erro ao registrar:", error)
@@ -150,6 +200,7 @@ export default function RegisterPage() {
               <Input
                 id="name"
                 name="name"
+                placeholder="Digite seu nome completo"
                 value={formData.name}
                 onChange={handleInputChange}
                 required
@@ -161,6 +212,7 @@ export default function RegisterPage() {
                 id="email"
                 name="email"
                 type="email"
+                placeholder="seu@email.com"
                 value={formData.email}
                 onChange={handleInputChange}
                 required
@@ -172,6 +224,7 @@ export default function RegisterPage() {
                 <Input
                   id="phone"
                   name="phone"
+                  placeholder="(11) 99999-9999"
                   value={formData.phone}
                   onChange={handleInputChange}
                   required
@@ -182,6 +235,7 @@ export default function RegisterPage() {
                 <Input
                   id="cpf"
                   name="cpf"
+                  placeholder="000.000.000-00"
                   value={formData.cpf}
                   onChange={handleInputChange}
                   required
@@ -195,6 +249,7 @@ export default function RegisterPage() {
                   id="password"
                   name="password"
                   type="password"
+                  placeholder="Mínimo 8 caracteres"
                   value={formData.password}
                   onChange={handleInputChange}
                   required
@@ -206,6 +261,7 @@ export default function RegisterPage() {
                   id="confirmPassword"
                   name="confirmPassword"
                   type="password"
+                  placeholder="Digite a senha novamente"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   required

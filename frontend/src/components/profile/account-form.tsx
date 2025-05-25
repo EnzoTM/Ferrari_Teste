@@ -17,7 +17,11 @@ interface UserData {
   [key: string]: any // Allow for additional fields from API
 }
 
-export default function AccountForm({ userData: propUserData = null }) {
+interface AccountFormProps {
+  userData: UserData | null;
+}
+
+export default function AccountForm({ userData: propUserData = null }: AccountFormProps) {
   const [userData, setUserData] = useState<UserData>({
     name: "",
     email: "",
@@ -170,6 +174,7 @@ export default function AccountForm({ userData: propUserData = null }) {
               <Input
                 id="name"
                 name="name"
+                placeholder="Digite seu nome completo"
                 value={userData.name}
                 onChange={handleInputChange}
                 disabled={!isEditing}
@@ -181,6 +186,7 @@ export default function AccountForm({ userData: propUserData = null }) {
                 id="email"
                 name="email"
                 type="email"
+                placeholder="seu@email.com"
                 value={userData.email}
                 onChange={handleInputChange}
                 disabled={!isEditing}
@@ -194,6 +200,7 @@ export default function AccountForm({ userData: propUserData = null }) {
               <Input 
                 id="phone" 
                 name="phone" 
+                placeholder="(11) 99999-9999"
                 value={userData.phone} 
                 onChange={handleInputChange} 
                 disabled={!isEditing} 
@@ -204,6 +211,7 @@ export default function AccountForm({ userData: propUserData = null }) {
               <Input 
                 id="cpf" 
                 name="cpf" 
+                placeholder="000.000.000-00"
                 value={userData.cpf} 
                 onChange={handleInputChange} 
                 disabled={!isEditing} 
@@ -231,6 +239,7 @@ export default function AccountForm({ userData: propUserData = null }) {
             <Input
               id="currentPassword"
               type="password"
+              placeholder="Digite sua senha atual"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
@@ -240,6 +249,7 @@ export default function AccountForm({ userData: propUserData = null }) {
             <Input
               id="newPassword"
               type="password"
+              placeholder="Mínimo 8 caracteres"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
@@ -249,6 +259,7 @@ export default function AccountForm({ userData: propUserData = null }) {
             <Input
               id="confirmPassword"
               type="password"
+              placeholder="Digite a nova senha novamente"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />

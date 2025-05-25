@@ -117,12 +117,11 @@ export default function Home() {
   // Função para mapear produtos do backend para o formato esperado pelo componente ProductCard
   const mapProductToCardData = (product: IProduct) => {
     return {
+      ...product, // Manter todas as propriedades originais
       id: product._id || '',
-      name: product.name,
-      price: product.price,
       image: product.images && product.images.length > 0 
-        ? `${API_URL}/public/images/products/${product.images[0]}`
-        : "/placeholder.svg?height=300&width=300",
+        ? product.images[0] // Usar apenas o nome do arquivo, não a URL completa
+        : "/placeholder.svg",
       category: product.type,
       inStock: (product.stock && product.stock > 0) || false
     }

@@ -42,6 +42,10 @@ const ProductSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    soundFile: {
+        type: String,
+        required: false
+    }
 }, { timestamps: true });
 
 const Product = mongoose.model('Product', ProductSchema);

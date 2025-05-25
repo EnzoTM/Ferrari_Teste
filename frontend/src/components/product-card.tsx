@@ -1,32 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { ShoppingCart, Loader2 } from "lucide-react"
+import { ShoppingCart, Loader2, Play, Pause } from "lucide-react"
 import { useCart } from "@/context/cart-context"
 import { API_URL } from "@/lib/api"
+import { IProduct } from "@/types/models"
 
 interface ProductCardProps {
-  product: {
-    id: string
-    name: string
-    price: number
-    image?: string
-    images?: string[]
-    category: string
-    type?: string
-    inStock?: boolean
-    stock?: number
-    _id?: string
-  }
+  product: IProduct
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addItem, isLoading } = useCart()
   const [imageError, setImageError] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
 
   // Get the correct image URL
   const getImageUrl = () => {
@@ -35,45 +27,58 @@ export default function ProductCard({ product }: ProductCardProps) {
       return `${API_URL}/public/images/products/${product.images[0]}`
     }
     
-    // If product has single image property
-    if (product.image) {
-      // Check if it's already a full URL
-      if (product.image.startsWith('http') || product.image.startsWith('/api') || product.image.startsWith('/public')) {
-        return product.image.startsWith('http') ? product.image : `${API_URL}${product.image}`
-      }
-      // Otherwise, construct the URL
-      return `${API_URL}/public/images/products/${product.image}`
-    }
-    
     // Fallback to placeholder
     return "/placeholder.svg"
   }
 
+  // Get the sound file URL
+  const getSoundUrl = () => {
+    if (product.soundFile) {
+      return `${API_URL}/public/sounds/${product.soundFile}`
+    }
+    return null
+  }
+
   const handleAddToCart = async () => {
     const cartItem = {
-      id: product._id || product.id,
+      id: product._id || '',
       name: product.name,
       price: product.price,
       image: getImageUrl(),
-      category: product.type || product.category,
-      quantity: 1
+      quantity: 1,
+      category: product.type
     }
-
     await addItem(cartItem)
   }
 
-  const isOutOfStock = product.stock !== undefined ? product.stock <= 0 : !product.inStock
+  const toggleAudio = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause()
+        setIsPlaying(false)
+      } else {
+        audioRef.current.play()
+        setIsPlaying(true)
+      }
+    }
+  }
+
+  const handleAudioEnded = () => {
+    setIsPlaying(false)
+  }
+
+  const isOutOfStock = product.stock !== undefined ? product.stock <= 0 : false
 
   return (
     <Card className="group overflow-hidden transition-all hover:shadow-lg">
-      <Link href={`/product/${product._id || product.id}`}>
+      <Link href={`/product/${product._id}`}>
         <div className="relative aspect-square overflow-hidden">
           {!imageError ? (
             <Image
               src={getImageUrl()}
               alt={product.name}
               fill
-              className="object-contain transition-transform group-hover:scale-105"
+              className="object-cover transition-transform group-hover:scale-105"
               onError={() => setImageError(true)}
             />
           ) : (
@@ -86,10 +91,42 @@ export default function ProductCard({ product }: ProductCardProps) {
               <span className="text-white font-semibold">Fora de Estoque</span>
             </div>
           )}
+          {/* Audio play button */}
+          {product.soundFile && (
+            <div className="absolute top-2 right-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white border-none"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  toggleAudio()
+                }}
+              >
+                {isPlaying ? (
+                  <Pause className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </Link>
+      
+      {/* Hidden audio element */}
+      {product.soundFile && (
+        <audio
+          ref={audioRef}
+          src={getSoundUrl()!}
+          onEnded={handleAudioEnded}
+          preload="none"
+        />
+      )}
+
       <CardContent className="p-4">
-        <Link href={`/product/${product._id || product.id}`}>
+        <Link href={`/product/${product._id}`}>
           <h3 className="mb-2 font-semibold hover:text-red-600 transition-colors">
             {product.name}
           </h3>

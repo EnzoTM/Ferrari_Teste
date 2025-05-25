@@ -40,6 +40,7 @@ export interface IProduct {
   featured?: boolean;
   stock?: number;
   sold?: number;
+  soundFile?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -60,6 +61,7 @@ export interface ICartItem {
   price: number;
   quantity: number;
   image: string;
+  category?: string;
 }
 
 // Interface para Item do Pedido
