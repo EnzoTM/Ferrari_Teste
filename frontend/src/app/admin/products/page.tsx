@@ -132,7 +132,7 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="container py-8 px-0">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" asChild>
@@ -143,11 +143,11 @@ export default function AdminProductsPage() {
           </Button>
           <h1 className="text-3xl font-bold">Gerenciar Produtos</h1>
         </div>
-        {/* <Button className="bg-red-600 hover:bg-red-700" asChild>
+        <Button className="bg-red-600 hover:bg-red-700" asChild>
           <Link href="/admin/products/add">
             <Plus className="mr-2 h-4 w-4" /> Adicionar Produto
           </Link>
-        </Button> */}
+        </Button>
       </div>
       
       <Card>

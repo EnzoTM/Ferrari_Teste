@@ -91,27 +91,6 @@ export default function ProductCard({ product }: ProductCardProps) {
               <span className="text-white font-semibold">Fora de Estoque</span>
             </div>
           )}
-          {/* Audio play button */}
-          {product.soundFile && (
-            <div className="absolute top-2 right-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white border-none"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  toggleAudio()
-                }}
-              >
-                {isPlaying ? (
-                  <Pause className="h-4 w-4" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          )}
         </div>
       </Link>
       
@@ -131,9 +110,36 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.name}
           </h3>
         </Link>
-        <p className="text-xl font-bold text-red-600">
-          R$ {product.price.toFixed(2)}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xl font-bold text-red-600">
+            R$ {product.price.toFixed(2)}
+          </p>
+          {/* Audio play button */}
+          {product.soundFile && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                toggleAudio()
+              }}
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="h-3 w-3 mr-1" />
+                  Pausar
+                </>
+              ) : (
+                <>
+                  <Play className="h-3 w-3 mr-1" />
+                  Som
+                </>
+              )}
+            </Button>
+          )}
+        </div>
         {product.stock !== undefined && (
           <p className="text-sm text-gray-500">
             {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}

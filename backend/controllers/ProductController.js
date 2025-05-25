@@ -221,6 +221,9 @@ module.exports = class ProductController {
         stock
       } = req.body;
 
+      // Check if type is changing to helmet and product has sound file
+      const isChangingToHelmet = type === 'helmet' && product.type !== 'helmet' && product.soundFile;
+
       // Atualizar campos se fornecidos
       if (name && name !== product.name) {
         const nameExists = await Product.findOne({ name, _id: { $ne: id } });
@@ -237,6 +240,19 @@ module.exports = class ProductController {
           return res.status(422).json({ message: 'Tipo de produto inválido' });
         }
         product.type = type;
+
+        // If changing to helmet, automatically remove sound file
+        if (type === 'helmet' && product.soundFile) {
+          try {
+            const oldSoundPath = path.join(__dirname, '../../public/sounds', product.soundFile);
+            if (fs.existsSync(oldSoundPath)) {
+              fs.unlinkSync(oldSoundPath);
+            }
+          } catch (error) {
+            console.error('Error removing sound file when changing to helmet:', error);
+          }
+          product.soundFile = undefined;
+        }
       }
       if (featured !== undefined) product.featured = featured;
       if (stock !== undefined) product.stock = stock;
@@ -249,7 +265,8 @@ module.exports = class ProductController {
           req.files.forEach(file => {
             if (file.fieldname === 'images') {
               product.images.push(file.filename);
-            } else if (file.fieldname === 'soundFile') {
+            } else if (file.fieldname === 'soundFile' && product.type !== 'helmet') {
+              // Only allow sound files for non-helmet products
               // Remover arquivo de áudio anterior se existir
               if (product.soundFile) {
                 try {
@@ -271,7 +288,8 @@ module.exports = class ProductController {
               product.images.push(file.filename);
             });
           }
-          if (req.files.soundFile && req.files.soundFile[0]) {
+          if (req.files.soundFile && req.files.soundFile[0] && product.type !== 'helmet') {
+            // Only allow sound files for non-helmet products
             // Remover arquivo de áudio anterior se existir
             if (product.soundFile) {
               try {
@@ -289,7 +307,14 @@ module.exports = class ProductController {
       }
 
       await product.save();
-      res.status(200).json({ message: 'Produto atualizado com sucesso', product });
+
+      // Add message about sound file deletion if it was automatically removed
+      let message = 'Produto atualizado com sucesso';
+      if (isChangingToHelmet) {
+        message += '. Arquivo de áudio removido automaticamente (capacetes não possuem som)';
+      }
+
+      res.status(200).json({ message, product });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }

@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Car, Trophy, HardHatIcon as Helmet, Home, List, Users } from "lucide-react"
+import { Home, List, Users, Plus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { isAdmin, isAuthenticated } from "@/lib/api"
 
@@ -69,21 +69,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </Link>
             </Button>
             <Button variant="ghost" className="w-full justify-start" asChild>
-              <Link href="/admin/products/add/car">
-                <Car className="mr-2 h-4 w-4" />
-                Add Car Miniature
-              </Link>
-            </Button>
-            <Button variant="ghost" className="w-full justify-start" asChild>
-              <Link href="/admin/products/add/formula1">
-                <Trophy className="mr-2 h-4 w-4" />
-                Add F1 Miniature
-              </Link>
-            </Button>
-            <Button variant="ghost" className="w-full justify-start" asChild>
-              <Link href="/admin/products/add/helmet">
-                <Helmet className="mr-2 h-4 w-4" />
-                Add Helmet Miniature
+              <Link href="/admin/products/add">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Product
               </Link>
             </Button>
             <h3 className="mb-2 mt-4 px-2 text-xs font-semibold uppercase text-gray-500">Users</h3>

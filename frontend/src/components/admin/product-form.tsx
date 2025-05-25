@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Upload, Volume2, X, Loader2 } from "lucide-react"
@@ -17,47 +18,35 @@ import { API_ENDPOINTS, fetchWithAuth, API_URL } from "@/lib/api"
 import Image from "next/image"
 
 interface ProductFormProps {
-  category: "cars" | "formula1" | "helmets"
   title: string
   editMode?: boolean
   productId?: string
 }
 
-export default function ProductForm({ category, title, editMode = false, productId }: ProductFormProps) {
+export default function ProductForm({ title, editMode = false, productId }: ProductFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     price: "",
     description: "",
+    type: "car" as "car" | "formula1" | "helmet",
     featured: false,
     stock: "10",
     sold: "0",
-    hasSound: category !== "helmets",
+    hasSound: true,
   })
   
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [existingImages, setExistingImages] = useState<string[]>([])
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([])
   const [soundFile, setSoundFile] = useState<File | null>(null)
   const [existingSoundFile, setExistingSoundFile] = useState<string>("")
+  const [shouldDeleteSound, setShouldDeleteSound] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const soundInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { toast } = useToast()
-
-  // Mapeamento de categoria para o tipo de produto
-  const getCategoryType = (category: string): "car" | "formula1" | "helmet" => {
-    switch (category) {
-      case "cars":
-        return "car"
-      case "formula1":
-        return "formula1"
-      case "helmets":
-        return "helmet"
-      default:
-        return "car"
-    }
-  }
 
   // Load product data if in edit mode
   useEffect(() => {
@@ -83,6 +72,7 @@ export default function ProductForm({ category, title, editMode = false, product
               name: product.name,
               price: product.price.toString(),
               description: product.description,
+              type: product.type || "car",
               featured: product.featured || false,
               stock: product.stock !== undefined ? product.stock.toString() : "10",
               sold: product.sold !== undefined ? product.sold.toString() : "0",
@@ -117,6 +107,21 @@ export default function ProductForm({ category, title, editMode = false, product
     }
   }, [editMode, productId, toast])
 
+  // Update hasSound when type changes
+  useEffect(() => {
+    const newHasSound = formData.type !== "helmet"
+    setFormData(prev => ({
+      ...prev,
+      hasSound: newHasSound
+    }))
+    
+    // If changing to helmet and in edit mode, mark existing sound for deletion
+    if (formData.type === "helmet" && editMode && existingSoundFile && !shouldDeleteSound) {
+      setShouldDeleteSound(true)
+      setExistingSoundFile("")
+    }
+  }, [formData.type, editMode, existingSoundFile, shouldDeleteSound, soundFile])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     if (name === "stock" || name === "sold") {
@@ -125,6 +130,10 @@ export default function ProductForm({ category, title, editMode = false, product
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }))
     }
+  }
+
+  const handleTypeChange = (value: "car" | "formula1" | "helmet") => {
+    setFormData((prev) => ({ ...prev, type: value }))
   }
 
   const handleSwitchChange = (name: string, checked: boolean) => {
@@ -165,7 +174,7 @@ export default function ProductForm({ category, title, editMode = false, product
     if (!files || files.length === 0) return
 
     // Limit to 3 images total (including existing ones)
-    const totalExistingImages = editMode ? existingImages.length : 0
+    const totalExistingImages = editMode ? existingImages.length - imagesToDelete.length : 0
     const remainingSlots = 3 - totalExistingImages - imageFiles.length
     const newFiles = Array.from(files).slice(0, remainingSlots)
 
@@ -185,42 +194,17 @@ export default function ProductForm({ category, title, editMode = false, product
     })
   }
 
-  const removeImage = async (index: number) => {
+  const removeImage = (index: number) => {
     const isExistingImage = editMode && index < existingImages.length
     
     if (isExistingImage) {
-      // Remove existing image from server
-      try {
-        const imageFilename = existingImages[index]
-        const response = await fetchWithAuth(`${API_ENDPOINTS.product(productId!)}/remove-image`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ filename: imageFilename }),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.message || 'Failed to delete image')
-        }
-
-        // Update local state
-        setExistingImages((prev) => prev.filter((_, i) => i !== index))
-        setImagePreviews((prev) => prev.filter((_, i) => i !== index))
-
-        toast({
-          title: "Image deleted",
-          description: "The image has been removed successfully",
-        })
-      } catch (error) {
-        console.error("Error deleting image:", error)
-        toast({
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to delete image",
-          variant: "destructive",
-        })
+      // Mark existing image for deletion
+      const imageFilename = existingImages[index]
+      if (!imagesToDelete.includes(imageFilename)) {
+        setImagesToDelete(prev => [...prev, imageFilename])
       }
+      // Remove from previews
+      setImagePreviews((prev) => prev.filter((_, i) => i !== index))
     } else {
       // Remove new image (not yet uploaded)
       const newImageIndex = index - existingImages.length
@@ -229,33 +213,11 @@ export default function ProductForm({ category, title, editMode = false, product
     }
   }
 
-  const removeSoundFile = async () => {
+  const removeSoundFile = () => {
     if (editMode && existingSoundFile) {
-      // Remove sound file from server
-      try {
-        const response = await fetchWithAuth(`${API_ENDPOINTS.product(productId!)}/remove-sound`, {
-          method: 'DELETE',
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.message || 'Failed to delete sound file')
-        }
-
-        setExistingSoundFile("")
-        
-        toast({
-          title: "Arquivo de áudio removido",
-          description: "O arquivo de áudio foi removido com sucesso",
-        })
-      } catch (error) {
-        console.error("Error deleting sound file:", error)
-        toast({
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to delete sound file",
-          variant: "destructive",
-        })
-      }
+      // Mark sound file for deletion
+      setShouldDeleteSound(true)
+      setExistingSoundFile("")
     } else {
       // Remove new sound file (not yet uploaded)
       setSoundFile(null)
@@ -277,8 +239,9 @@ export default function ProductForm({ category, title, editMode = false, product
       return
     }
 
-    // Check if we have at least one image (existing or new)
-    const totalImages = existingImages.length + imageFiles.length
+    // Check if we have at least one image (existing or new) after deletions
+    const remainingExistingImages = existingImages.length - imagesToDelete.length
+    const totalImages = remainingExistingImages + imageFiles.length
     if (totalImages === 0) {
       toast({
         title: "Images required",
@@ -291,12 +254,26 @@ export default function ProductForm({ category, title, editMode = false, product
     setIsSubmitting(true)
 
     try {
-      // Prepare form data for API
+      // Step 1: Delete sound file if marked for deletion
+      if (editMode && productId && shouldDeleteSound) {
+        try {
+          const response = await fetchWithAuth(`${API_ENDPOINTS.product(productId)}/remove-sound`, {
+            method: 'DELETE',
+          })
+          if (!response.ok) {
+            console.error('Failed to delete sound file')
+          }
+        } catch (error) {
+          console.error('Error deleting sound file:', error)
+        }
+      }
+
+      // Step 2: Update product data
       const apiFormData = new FormData()
       apiFormData.append('name', formData.name)
       apiFormData.append('price', formData.price)
       apiFormData.append('description', formData.description)
-      apiFormData.append('type', getCategoryType(category))
+      apiFormData.append('type', formData.type)
       apiFormData.append('featured', formData.featured.toString())
       apiFormData.append('stock', formData.stock)
       apiFormData.append('sold', formData.sold)
@@ -340,6 +317,26 @@ export default function ProductForm({ category, title, editMode = false, product
         throw new Error(errorMessage)
       }
 
+      // Step 3: Delete marked images after product update
+      if (editMode && productId && imagesToDelete.length > 0) {
+        for (const imageFilename of imagesToDelete) {
+          try {
+            const response = await fetchWithAuth(`${API_ENDPOINTS.product(productId)}/remove-image`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ filename: imageFilename }),
+            })
+            if (!response.ok) {
+              console.error(`Failed to delete image: ${imageFilename}`)
+            }
+          } catch (error) {
+            console.error(`Error deleting image ${imageFilename}:`, error)
+          }
+        }
+      }
+
       const data = await response.json()
       
       toast({
@@ -353,10 +350,11 @@ export default function ProductForm({ category, title, editMode = false, product
           name: "",
           price: "",
           description: "",
+          type: "car",
           featured: false,
           stock: "10",
           sold: "0",
-          hasSound: category !== "helmets",
+          hasSound: true,
         })
         setSoundFile(null)
         setImageFiles([])
@@ -386,7 +384,6 @@ export default function ProductForm({ category, title, editMode = false, product
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
-          {/* ...existing form fields... */}
           <div className="space-y-2">
             <Label htmlFor="name">Product Name</Label>
             <Input
@@ -398,6 +395,20 @@ export default function ProductForm({ category, title, editMode = false, product
               required
               disabled={isSubmitting}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="type">Product Type</Label>
+            <Select value={formData.type} onValueChange={handleTypeChange} disabled={isSubmitting}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select product type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="car">Carro</SelectItem>
+                <SelectItem value="formula1">Fórmula 1</SelectItem>
+                <SelectItem value="helmet">Capacete</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -460,7 +471,7 @@ export default function ProductForm({ category, title, editMode = false, product
             />
           </div>
 
-          {/* ...existing image upload section... */}
+          {/* Product Images */}
           <div className="space-y-2">
             <Label className="block mb-2">Product Images</Label>
             <div className="grid grid-cols-3 gap-4">
@@ -525,7 +536,7 @@ export default function ProductForm({ category, title, editMode = false, product
           </div>
 
           {/* Audio upload section */}
-          {category !== "helmets" && (
+          {formData.type !== "helmet" && (
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Switch
@@ -545,7 +556,7 @@ export default function ProductForm({ category, title, editMode = false, product
                   </Label>
                   
                   {/* Show existing sound file */}
-                  {existingSoundFile && (
+                  {existingSoundFile && !shouldDeleteSound && (
                     <Alert className="mb-2">
                       <Volume2 className="h-4 w-4" />
                       <AlertDescription className="flex items-center justify-between">

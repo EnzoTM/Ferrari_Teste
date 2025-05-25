@@ -68,7 +68,7 @@ export default function Footer() {
             <h3 className="text-lg font-medium">Information</h3>
             <ul className="mt-4 space-y-2">
               <li>
-                <Link href="/contact" className="text-sm text-gray-600 hover:text-red-600">
+                <Link href="/" className="text-sm text-gray-600 hover:text-red-600">
                   Contact
                 </Link>
               </li>
@@ -90,7 +90,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <Link href="/faq" className="text-sm text-gray-600 hover:text-red-600">
+                <Link href="/" className="text-sm text-gray-600 hover:text-red-600">
                   FAQ
                 </Link>
               </li>
