@@ -127,11 +127,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       quantity: quantity,
       category: product.type
     })
-
-    toast({
-      title: "Produto adicionado",
-      description: `${quantity}x ${product.name} adicionado ao carrinho`,
-    })
   }
 
   const increaseQuantity = () => {
