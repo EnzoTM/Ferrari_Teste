@@ -48,7 +48,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
   const router = useRouter()
   const { toast } = useToast()
 
-  // Load product data if in edit mode
+  // Carregar dados do produto se estiver no modo de edição
   useEffect(() => {
     if (editMode && productId) {
       const fetchProduct = async () => {
@@ -56,12 +56,12 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
           const response = await fetchWithAuth(API_ENDPOINTS.product(productId))
           
           if (!response.ok) {
-            throw new Error(`Failed to fetch product: ${response.status}`)
+            throw new Error(`Falhou em fetch o produto: ${response.status}`)
           }
           
           const contentType = response.headers.get("content-type")
           if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Server returned invalid response format")
+            throw new Error("Servidor retornou resposta com formato invalido")
           }
           
           const data = await response.json()
@@ -79,7 +79,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
               hasSound: !!product.soundFile,
             })
             
-            // Set image previews for existing product
+            // Definir previews para produtos existentes
             if (product.images && product.images.length > 0) {
               const imageUrls = product.images.map((img: string) => 
                 img.startsWith('http') ? img : `${API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/public/images/products/${img}`
@@ -88,16 +88,16 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
               setExistingImages([...product.images])
             }
             
-            // Set existing sound file
+            // Setar o arquivo de som existente
             if (product.soundFile) {
               setExistingSoundFile(product.soundFile)
             }
           }
         } catch (error) {
-          console.error("Error fetching product:", error)
+          console.error("Erro ao pegar o produto:", error)
           toast({
             title: "Error",
-            description: error instanceof Error ? error.message : "Failed to load product data",
+            description: error instanceof Error ? error.message : "Falhou ao carregar o dado do produto",
             variant: "destructive",
           })
         }
@@ -107,7 +107,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
     }
   }, [editMode, productId, toast])
 
-  // Update hasSound when type changes
+  // Atualiza hasSound quando o tipo muda
   useEffect(() => {
     const newHasSound = formData.type !== "helmet"
     setFormData(prev => ({
@@ -115,7 +115,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
       hasSound: newHasSound
     }))
     
-    // If changing to helmet and in edit mode, mark existing sound for deletion
+    // Ao trocar para capacete no modo de edição, marque o áudio atual para ser excluído
     if (formData.type === "helmet" && editMode && existingSoundFile && !shouldDeleteSound) {
       setShouldDeleteSound(true)
       setExistingSoundFile("")
@@ -173,24 +173,24 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // Limit to 3 images total (including existing ones)
+    // Limitar a 3 imagens no total (incluindo as existentes)
     const totalExistingImages = editMode ? existingImages.length - imagesToDelete.length : 0
     const remainingSlots = 3 - totalExistingImages - imageFiles.length
     const newFiles = Array.from(files).slice(0, remainingSlots)
 
-    // Add new files to state
+    // Adicionar novos arquivos ao estado
     setImageFiles((prev) => [...prev, ...newFiles])
 
     // Create preview URLs for new files
     const newPreviews = newFiles.map(file => URL.createObjectURL(file))
     setImagePreviews((prev) => [...prev, ...newPreviews])
 
-    // Reset the file input value
+    // Gerar URLs de pré-visualização para novos arquivos
     if (fileInputRef.current) fileInputRef.current.value = ""
 
     toast({
-      title: "Images added",
-      description: `${newFiles.length} image(s) selected for upload`,
+      title: "Imagens adicionadas",
+      description: `${newFiles.length} imagen(s) selecionada(s) para upload`,
     })
   }
 
@@ -198,15 +198,16 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
     const isExistingImage = editMode && index < existingImages.length
     
     if (isExistingImage) {
-      // Mark existing image for deletion
+      // Marca a imagem existente para deletar
       const imageFilename = existingImages[index]
       if (!imagesToDelete.includes(imageFilename)) {
         setImagesToDelete(prev => [...prev, imageFilename])
       }
-      // Remove from previews
+
+      // Remove dos previews
       setImagePreviews((prev) => prev.filter((_, i) => i !== index))
     } else {
-      // Remove new image (not yet uploaded)
+      // Remove nova imagem (ainda não uploadada)
       const newImageIndex = index - existingImages.length
       setImageFiles((prev) => prev.filter((_, i) => i !== newImageIndex))
       setImagePreviews((prev) => prev.filter((_, i) => i !== index))
@@ -215,11 +216,11 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
 
   const removeSoundFile = () => {
     if (editMode && existingSoundFile) {
-      // Mark sound file for deletion
+      //Marca o arquivo de som para deleção
       setShouldDeleteSound(true)
       setExistingSoundFile("")
     } else {
-      // Remove new sound file (not yet uploaded)
+      //Remove o novo arquivo de som (ainda não uploadado)
       setSoundFile(null)
       if (soundInputRef.current) {
         soundInputRef.current.value = ""
@@ -232,20 +233,20 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
     
     if (!formData.name || !formData.price || !formData.description) {
       toast({
-        title: "Missing fields",
-        description: "Please fill out all required fields",
+        title: "Campos não preenchidos",
+        description: "Preencha todos os campos obrigatórios",
         variant: "destructive",
       })
       return
     }
 
-    // Check if we have at least one image (existing or new) after deletions
+    // Checar se temos pelo menos uma imagem (existente ou nova) depois das deleções
     const remainingExistingImages = existingImages.length - imagesToDelete.length
     const totalImages = remainingExistingImages + imageFiles.length
     if (totalImages === 0) {
       toast({
-        title: "Images required",
-        description: "Please upload at least one product image",
+        title: "Imagens obrigatórias",
+        description: "Envie pelo menos uma imagem para este produto",
         variant: "destructive",
       })
       return
@@ -254,21 +255,21 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
     setIsSubmitting(true)
 
     try {
-      // Step 1: Delete sound file if marked for deletion
+      // Step 1: delete o arquivo de som se marcado para deleção
       if (editMode && productId && shouldDeleteSound) {
         try {
           const response = await fetchWithAuth(`${API_ENDPOINTS.product(productId)}/remove-sound`, {
             method: 'DELETE',
           })
           if (!response.ok) {
-            console.error('Failed to delete sound file')
+            console.error('Falhou ao deletar o arquivo de som')
           }
         } catch (error) {
-          console.error('Error deleting sound file:', error)
+          console.error('Erro ao deletar o arquivo de som:', error)
         }
       }
 
-      // Step 2: Update product data
+      // Step 2: atualizar os dados do produto
       const apiFormData = new FormData()
       apiFormData.append('name', formData.name)
       apiFormData.append('price', formData.price)
@@ -278,25 +279,25 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
       apiFormData.append('stock', formData.stock)
       apiFormData.append('sold', formData.sold)
 
-      // Add new image files
+      // Adicionar os novos arquivos das imagens
       imageFiles.forEach((file) => {
         apiFormData.append('images', file)
       })
 
-      // Add sound file if provided
+      // Adiciona o arquivo de som se ele foi dado
       if (formData.hasSound && soundFile) {
         apiFormData.append('soundFile', soundFile)
       }
 
       let response
       if (editMode && productId) {
-        // Update existing product
+        // Atualizar o produto atual
         response = await fetchWithAuth(API_ENDPOINTS.product(productId), {
           method: 'PATCH',
           body: apiFormData,
         })
       } else {
-        // Create new product
+        // Cria um novo produto
         response = await fetchWithAuth(API_ENDPOINTS.products, {
           method: 'POST',
           body: apiFormData,
@@ -305,7 +306,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
 
       if (!response.ok) {
         const errorText = await response.text()
-        let errorMessage = "Failed to save product"
+        let errorMessage = "Erro ao salvar o produto"
         
         try {
           const errorData = JSON.parse(errorText)
@@ -317,7 +318,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
         throw new Error(errorMessage)
       }
 
-      // Step 3: Delete marked images after product update
+      // Step 3: Apaga iamgens marcadas depois da atualização do produto
       if (editMode && productId && imagesToDelete.length > 0) {
         for (const imageFilename of imagesToDelete) {
           try {
@@ -329,10 +330,10 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
               body: JSON.stringify({ filename: imageFilename }),
             })
             if (!response.ok) {
-              console.error(`Failed to delete image: ${imageFilename}`)
+              console.error(`Falhou ao deletar a imagem: ${imageFilename}`)
             }
           } catch (error) {
-            console.error(`Error deleting image ${imageFilename}:`, error)
+            console.error(`Erro ao deletar a imagem ${imageFilename}:`, error)
           }
         }
       }
@@ -344,7 +345,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
         description: data.message || `${formData.name} has been ${editMode ? 'updated' : 'added'} successfully`,
       })
 
-      // Reset form for new products
+      // Reseta o formulario para novos produtos
       if (!editMode) {
         setFormData({
           name: "",
@@ -363,13 +364,13 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
         setExistingSoundFile("")
       }
 
-      // Redirect to admin products page
+      // Redireciona o admin para a página de produtos
       router.push("/admin/products")
     } catch (error) {
       console.error("Error saving product:", error)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save product",
+        description: error instanceof Error ? error.message : "Falhou ao salvar o produto",
         variant: "destructive",
       })
     } finally {
@@ -385,7 +386,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Product Name</Label>
+            <Label htmlFor="name">Nome do Produto</Label>
             <Input
               id="name"
               name="name"
@@ -398,10 +399,10 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="type">Product Type</Label>
+            <Label htmlFor="type">Tipo do produto</Label>
             <Select value={formData.type} onValueChange={handleTypeChange} disabled={isSubmitting}>
               <SelectTrigger>
-                <SelectValue placeholder="Select product type" />
+                <SelectValue placeholder="Selecione o tipo do produto" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="car">Carro</SelectItem>
@@ -412,7 +413,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="price">Price ($)</Label>
+            <Label htmlFor="price">Preço ($)</Label>
             <Input
               id="price"
               name="price"
@@ -429,7 +430,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
 
           <div className="grid gap-4 sm:grid-cols-1">
             <div className="space-y-2">
-              <Label htmlFor="stock">Stock Quantity</Label>
+              <Label htmlFor="stock">Quantidade no Stock</Label>
               <Input
                 id="stock"
                 name="stock"
@@ -458,13 +459,13 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Descrição</Label>
             <Textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Detailed description of the product..."
+              placeholder="Descrição detalhada do produto"
               rows={4}
               required
               disabled={isSubmitting}
@@ -473,14 +474,14 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
 
           {/* Product Images */}
           <div className="space-y-2">
-            <Label className="block mb-2">Product Images</Label>
+            <Label className="block mb-2">Imagens do produto</Label>
             <div className="grid grid-cols-3 gap-4">
               {imagePreviews.length > 0 ? (
                 imagePreviews.map((preview, index) => (
                   <div key={index} className="relative aspect-square rounded border bg-gray-50 overflow-hidden">
                     <Image
                       src={preview}
-                      alt={`Product image ${index + 1}`}
+                      alt={`Imagem do produto ${index + 1}`}
                       fill
                       className="object-cover"
                     />
@@ -488,7 +489,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
                       type="button"
                       onClick={() => removeImage(index)}
                       className="absolute top-1 right-1 bg-white p-1 rounded-full shadow-sm hover:bg-red-50"
-                      title="Remove image"
+                      title="Remover imagem"
                       disabled={isSubmitting}
                     >
                       <X className="h-4 w-4 text-red-500" />
@@ -519,7 +520,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
                   disabled={isSubmitting}
                 />
                 <p className="text-xs text-gray-500">
-                  Upload up to 3 product images (JPG, JPEG, or PNG). Maximum size: 5MB per image.
+                  Envie até 3 imagens (JPG, JPEG ou PNG). Tamanho máximo: 5MB por imagem.
                 </p>
               </div>
             )}
@@ -532,7 +533,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
               onCheckedChange={(checked) => handleSwitchChange("featured", checked)}
               disabled={isSubmitting}
             />
-            <Label htmlFor="featured">Featured Product</Label>
+            <Label htmlFor="featured">Produto em Destaque</Label>
           </div>
 
           {/* Audio upload section */}
@@ -545,14 +546,14 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
                   onCheckedChange={(checked) => handleSwitchChange("hasSound", checked)}
                   disabled={isSubmitting}
                 />
-                <Label htmlFor="hasSound">Has Engine Sound</Label>
+                <Label htmlFor="hasSound">Contém som do motor</Label>
               </div>
               
               {formData.hasSound && (
                 <div className="space-y-2 rounded-md border p-4">
                   <Label htmlFor="soundFile" className="flex items-center">
                     <Volume2 className="mr-2 h-4 w-4" />
-                    Engine Sound File
+                    Arquivo do Som do Motor
                   </Label>
                   
                   {/* Show existing sound file */}
@@ -603,7 +604,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
                   />
                   
                   <p className="text-xs text-gray-500">
-                    Upload an MP3, WAV, OGG or M4A file of the engine sound. Maximum size: 5MB
+                    Envie um arquivo MP3, WAV, OGG ou M4A do som do motor. Tamanho máximo: 5MB
                   </p>
                 </div>
               )}
@@ -618,7 +619,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
             onClick={() => router.back()}
             disabled={isSubmitting}
           >
-            Cancel
+            Cancelar
           </Button>
           <Button 
             type="submit" 
@@ -628,10 +629,10 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {editMode ? "Updating..." : "Adding..."}
+                {editMode ? "Atualizando..." : "Adicionando..."}
               </>
             ) : (
-              editMode ? "Update Product" : "Add Product"
+              editMode ? "Atualizar Produto" : "Adicionar Produto"
             )}
           </Button>
         </CardFooter>

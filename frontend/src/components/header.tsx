@@ -1,4 +1,4 @@
-"use client"
+"use client"  // indica que este componente é client-side
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -13,38 +13,39 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
 export default function Header() {
-  const { itemCount, clearCart } = useCart()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [isUserAdmin, setIsUserAdmin] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { itemCount, clearCart } = useCart()  // contexto do carrinho
+  const [isLoggedIn, setIsLoggedIn] = useState(false)  // estado de autenticação
+  const [isUserAdmin, setIsUserAdmin] = useState(false)  // estado de admin
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)  // estado do menu mobile
   const router = useRouter()
   const { toast } = useToast()
 
+  // verifica status de autenticação e administra eventos de mudança
   useEffect(() => {
     const checkAuthStatus = () => {
       setIsLoggedIn(isAuthenticated())
       setIsUserAdmin(isAdmin())
     }
     
-    // Check immediately
+    // verifica imediatamente
     checkAuthStatus()
     
-    // Listen for storage changes (when user logs in/out in another tab)
+    // escuta mudanças no armazenamento (login/logout em outra aba)
     const handleStorageChange = () => {
       checkAuthStatus()
     }
     
-    // Listen for custom auth state changes
+    // escuta mudanças personalizadas no estado de autenticação
     const handleAuthStateChange = () => {
       checkAuthStatus()
     }
     
+    // escuta eventos
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('authStateChanged', handleAuthStateChange)
-    
-    // Also listen for focus events to re-check when user returns to tab
     window.addEventListener('focus', checkAuthStatus)
     
+    // remove os listeners ao desmontar
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('authStateChanged', handleAuthStateChange)
@@ -52,17 +53,16 @@ export default function Header() {
     }
   }, [])
 
+  // função de logout
   const handleLogout = async () => {
     try {
-      // Clear cart from backend and local state
-      await clearCart()
+      await clearCart()  // limpa o carrinho no backend e local
     } catch (error) {
-      console.error("Error clearing cart during logout:", error)
-      // Continue with logout even if cart clearing fails
+      console.error("Erro ao limpar o carrinho durante o logout:", error)
+      // prossegue mesmo com erro
     }
     
-    // Clear authentication data
-    logout()
+    logout()  // encerra sessão
     setIsLoggedIn(false)
     setIsUserAdmin(false)
     setMobileMenuOpen(false)
@@ -72,9 +72,10 @@ export default function Header() {
       description: "Você foi desconectado e seu carrinho foi esvaziado.",
     })
     
-    router.push("/")
+    router.push("/")  // redireciona para home
   }
 
+  // itens de navegação
   const navItems = [
     { href: "/", label: "Início" },
     { href: "/cars", label: "Carros" },
@@ -85,21 +86,22 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
       <div className="container flex h-14 items-center">
-        {/* Logo - Fixed left */}
+        
+        {/* Logo - fixo à esquerda */}
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2">
             <Image
               src="/logo.png?height=60&width=60"
-              alt="Ferrari Store"
+              alt="Loja Ferrari"
               width={60}
               height={60}
               className="h-8 w-8 object-contain"
             />
-            <span className="hidden font-bold md:inline-block">Ferrari Store</span>
+            <span className="hidden font-bold md:inline-block">Loja Ferrari</span>
           </Link>
         </div>
 
-        {/* Mobile Menu Button */}
+        {/* Botão do menu mobile */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button
@@ -107,7 +109,7 @@ export default function Header() {
               className="ml-4 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
             >
               <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle Menu</span>
+              <span className="sr-only">Abrir Menu</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="pr-0">
@@ -119,13 +121,15 @@ export default function Header() {
             >
               <Image
                 src="/logo.png?height=60&width=60"
-                alt="Ferrari Store"
+                alt="Loja Ferrari"
                 width={60}
                 height={60}
                 className="h-8 w-8 object-contain"
               />
-              <span className="font-bold">Ferrari Store</span>
+              <span className="font-bold">Loja Ferrari</span>
             </Link>
+            
+            {/* Navegação mobile */}
             <nav className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
               <div className="space-y-3">
                 {navItems.map((item) => (
@@ -138,6 +142,7 @@ export default function Header() {
                     {item.label}
                   </Link>
                 ))}
+                {/* link admin só aparece para admin logado */}
                 {isLoggedIn && isUserAdmin && (
                   <Link
                     href="/admin"
@@ -152,7 +157,7 @@ export default function Header() {
           </SheetContent>
         </Sheet>
 
-        {/* Centered Navigation - Desktop */}
+        {/* Navegação central - desktop */}
         <div className="hidden md:flex flex-1 justify-center">
           <nav className="flex items-center space-x-8 text-sm font-medium">
             {navItems.map((item) => (
@@ -167,9 +172,10 @@ export default function Header() {
           </nav>
         </div>
 
-        {/* Right side actions */}
+        {/* Ações à direita */}
         <div className="flex items-center space-x-2 ml-auto md:ml-0">
-          {/* Cart Button */}
+          
+          {/* Botão do carrinho */}
           <Button variant="ghost" size="icon" asChild className="relative">
             <Link href="/cart">
               <ShoppingCart className="h-4 w-4" />
@@ -185,7 +191,7 @@ export default function Header() {
             </Link>
           </Button>
 
-          {/* User Menu */}
+          {/* Menu do usuário */}
           {isLoggedIn ? (
             <div className="flex items-center space-x-2">
               <Button variant="ghost" size="icon" asChild>

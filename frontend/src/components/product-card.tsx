@@ -1,4 +1,4 @@
-"use client"
+"use client"  // indica que o componente será executado no client-side
 
 import { useState, useRef } from "react"
 import Image from "next/image"
@@ -10,28 +10,27 @@ import { useCart } from "@/context/cart-context"
 import { API_URL } from "@/lib/api"
 import { IProduct } from "@/types/models"
 
+// Props esperadas: um produto
 interface ProductCardProps {
   product: IProduct
 }
 
+// Componente do Card de Produto
 export default function ProductCard({ product }: ProductCardProps) {
-  const { addItem, isLoading } = useCart()
-  const [imageError, setImageError] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const { addItem, isLoading } = useCart()  // contexto do carrinho
+  const [imageError, setImageError] = useState(false)  // estado para erro na imagem
+  const [isPlaying, setIsPlaying] = useState(false)  // estado do áudio
+  const audioRef = useRef<HTMLAudioElement>(null)  // referência do áudio
 
-  // Get the correct image URL
+  // Função para obter a URL correta da imagem
   const getImageUrl = () => {
-    // If product has images array (from backend)
     if (product.images && product.images.length > 0) {
       return `${API_URL}/public/images/products/${product.images[0]}`
     }
-    
-    // Fallback to placeholder
-    return "/placeholder.svg"
+    return "/placeholder.svg"  // imagem padrão
   }
 
-  // Get the sound file URL
+  // Função para obter a URL do som
   const getSoundUrl = () => {
     if (product.soundFile) {
       return `${API_URL}/public/sounds/${product.soundFile}`
@@ -39,6 +38,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     return null
   }
 
+  // Adiciona o produto ao carrinho
   const handleAddToCart = async () => {
     const cartItem = {
       id: product._id || '',
@@ -51,6 +51,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     await addItem(cartItem)
   }
 
+  // Toca ou pausa o áudio
   const toggleAudio = () => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -63,14 +64,17 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   }
 
+  // Quando o áudio termina, atualiza o estado
   const handleAudioEnded = () => {
     setIsPlaying(false)
   }
 
+  // Verifica se está fora de estoque
   const isOutOfStock = product.stock !== undefined ? product.stock <= 0 : false
 
   return (
     <Card className="group overflow-hidden transition-all hover:shadow-lg">
+      {/* Link para a página do produto */}
       <Link href={`/product/${product._id}`}>
         <div className="relative aspect-square overflow-hidden">
           {!imageError ? (
@@ -86,6 +90,8 @@ export default function ProductCard({ product }: ProductCardProps) {
               <span className="text-gray-400">Sem imagem</span>
             </div>
           )}
+
+          {/* Exibe aviso se estiver fora de estoque */}
           {isOutOfStock && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
               <span className="text-white font-semibold">Fora de Estoque</span>
@@ -94,7 +100,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       </Link>
       
-      {/* Hidden audio element */}
+      {/* Elemento de áudio oculto */}
       {product.soundFile && (
         <audio
           ref={audioRef}
@@ -105,16 +111,19 @@ export default function ProductCard({ product }: ProductCardProps) {
       )}
 
       <CardContent className="p-4">
+        {/* Nome do produto com link */}
         <Link href={`/product/${product._id}`}>
           <h3 className="mb-2 font-semibold hover:text-red-600 transition-colors">
             {product.name}
           </h3>
         </Link>
+
         <div className="flex items-center justify-between">
           <p className="text-xl font-bold text-red-600">
             R$ {product.price.toFixed(2)}
           </p>
-          {/* Audio play button */}
+
+          {/* Botão para tocar o som, se existir */}
           {product.soundFile && (
             <Button
               variant="outline"
@@ -140,12 +149,16 @@ export default function ProductCard({ product }: ProductCardProps) {
             </Button>
           )}
         </div>
+
+        {/* Informação de estoque */}
         {product.stock !== undefined && (
           <p className="text-sm text-gray-500">
             {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}
           </p>
         )}
       </CardContent>
+
+      {/* Rodapé do card com botão de adicionar ao carrinho */}
       <CardFooter className="p-4 pt-0">
         <Button
           className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50"
