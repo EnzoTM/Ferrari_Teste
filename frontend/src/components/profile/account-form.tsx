@@ -1,42 +1,53 @@
 "use client"
 
+// importando tipos e hooks do React
 import type React from "react"
 import { useState, useEffect } from "react"
+
+// importando componentes de UI
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
+
+// função para configuração de autenticação na API
 import { authFetchConfig } from "@/lib/api"
 
+// definindo a interface dos dados do usuário
 interface UserData {
   name?: string
   fullName?: string
   email: string
   phone: string
   cpf: string
-  [key: string]: any // Allow for additional fields from API
+  [key: string]: any // permite campos adicionais vindos da API
 }
 
+// definindo a interface das props do componente
 interface AccountFormProps {
   userData: UserData | null;
 }
 
+// componente principal do formulário de conta
 export default function AccountForm({ userData: propUserData = null }: AccountFormProps) {
+  // estados para armazenar dados do usuário
   const [userData, setUserData] = useState<UserData>({
     name: "",
     email: "",
     phone: "",
     cpf: "",
   })
-  const [isEditing, setIsEditing] = useState(false)
-  const [currentPassword, setCurrentPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [passwordError, setPasswordError] = useState("")
-  const [isSaving, setIsSaving] = useState(false)
-  const { toast } = useToast()
+  
+  const [isEditing, setIsEditing] = useState(false) // estado para verificar se está editando
+  const [currentPassword, setCurrentPassword] = useState("") // senha atual
+  const [newPassword, setNewPassword] = useState("") // nova senha
+  const [confirmPassword, setConfirmPassword] = useState("") // confirmação da nova senha
+  const [passwordError, setPasswordError] = useState("") // erro de validação de senha
+  const [isSaving, setIsSaving] = useState(false) // flag de carregamento ao salvar
 
-  // Load user data from API data passed as props
+  const { toast } = useToast() // hook para exibir notificações
+
+  // efeito para carregar os dados do usuário recebidos via props
   useEffect(() => {
     if (propUserData) {
       setUserData({
@@ -48,11 +59,13 @@ export default function AccountForm({ userData: propUserData = null }: AccountFo
     }
   }, [propUserData])
 
+  // função para tratar alterações nos inputs
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setUserData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // função para salvar alterações do perfil
   const handleSaveProfile = async () => {
     setIsSaving(true)
     try {
@@ -61,7 +74,7 @@ export default function AccountForm({ userData: propUserData = null }: AccountFo
         throw new Error("Usuário não encontrado")
       }
 
-      // Create payload with fields to update
+      // criando objeto com os campos a serem atualizados
       const payload = {
         name: userData.name,
         email: userData.email,
@@ -69,7 +82,7 @@ export default function AccountForm({ userData: propUserData = null }: AccountFo
         cpf: userData.cpf
       }
 
-      // Send data to backend
+      // enviando dados para o backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, 
         authFetchConfig('PUT', payload)
       )
@@ -79,24 +92,26 @@ export default function AccountForm({ userData: propUserData = null }: AccountFo
         throw new Error(errorData.message || "Erro ao atualizar perfil")
       }
 
-      setIsEditing(false)
-      
+      setIsEditing(false) // desativa modo de edição
+
+      // exibe notificação de sucesso
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram atualizadas com sucesso",
       })
     } catch (error) {
-      console.error("Error saving profile:", error)
+      console.error("Erro ao salvar perfil:", error)
       toast({
         title: "Erro ao salvar",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar suas informações",
         variant: "destructive",
       })
     } finally {
-      setIsSaving(false)
+      setIsSaving(false) // encerra carregamento
     }
   }
 
+  // função para validar a nova senha
   const validatePassword = () => {
     if (newPassword.length < 8) {
       setPasswordError("A senha deve ter pelo menos 8 caracteres")
@@ -109,6 +124,7 @@ export default function AccountForm({ userData: propUserData = null }: AccountFo
     return true
   }
 
+  // função para alterar a senha
   const handleChangePassword = async () => {
     if (!currentPassword) {
       setPasswordError("Digite sua senha atual")
@@ -122,7 +138,7 @@ export default function AccountForm({ userData: propUserData = null }: AccountFo
           throw new Error("Usuário não encontrado")
         }
 
-        // Send password update request to backend
+        // enviando requisição para alterar senha
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}/change-password`,
           authFetchConfig('PUT', { 
@@ -136,18 +152,18 @@ export default function AccountForm({ userData: propUserData = null }: AccountFo
           throw new Error(errorData.message || "Erro ao alterar senha")
         }
         
-        // Reset password fields
+        // limpando campos de senha
         setCurrentPassword("")
         setNewPassword("")
         setConfirmPassword("")
         setPasswordError("")
-        
+
         toast({
           title: "Senha alterada",
           description: "Sua senha foi alterada com sucesso",
         })
       } catch (error) {
-        console.error("Error changing password:", error)
+        console.error("Erro ao alterar senha:", error)
         toast({
           title: "Erro ao alterar senha",
           description: error instanceof Error ? error.message : "Ocorreu um erro ao alterar sua senha",

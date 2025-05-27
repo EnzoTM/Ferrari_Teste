@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 
+// Interface para o endereço
 interface Address {
   street: string
   number: string
@@ -29,28 +31,28 @@ interface Address {
 }
 
 export default function AddressSection() {
-  const [address, setAddress] = useState<Address | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
-  const [currentAddress, setCurrentAddress] = useState<Address | null>(null)
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [address, setAddress] = useState<Address | null>(null) // Endereço atual
+  const [isLoading, setIsLoading] = useState(true) // Estado de carregamento
+  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false) // Controle do modal
+  const [currentAddress, setCurrentAddress] = useState<Address | null>(null) // Endereço em edição
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({}) // Erros do formulário
   const { toast } = useToast()
 
-  // Fetch address
+  // Buscar endereço na API
   useEffect(() => {
     const fetchAddress = async () => {
       try {
         setIsLoading(true)
         const response = await fetch(API_ENDPOINTS.address, authFetchConfig())
-        
+
         if (!response.ok) {
-          throw new Error('Failed to fetch address')
+          throw new Error('Falha ao buscar endereço')
         }
-        
+
         const data = await response.json()
         setAddress(data.address || null)
       } catch (error) {
-        console.error("Error fetching address:", error)
+        console.error("Erro ao buscar endereço:", error)
         toast({
           title: "Erro",
           description: "Não foi possível carregar seu endereço.",
@@ -64,18 +66,18 @@ export default function AddressSection() {
     fetchAddress()
   }, [toast])
 
+  // Submissão do formulário
   const handleAddressSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
+
     if (!validateAddressForm()) {
       return
     }
-    
+
     try {
       const url = API_ENDPOINTS.address
       const method = 'PUT'
-      
-      // Fix: Pass currentAddress directly as the body parameter
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -84,26 +86,25 @@ export default function AddressSection() {
         },
         body: JSON.stringify(currentAddress)
       })
-      
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Falha ao atualizar endereço');
+        throw new Error(errorData.message || 'Falha ao atualizar endereço')
       }
-      
+
       const data = await response.json()
-      
-      // Update address state
+
       setAddress(data.address)
       setIsAddressDialogOpen(false)
-      
+
       toast({
         title: address ? "Endereço atualizado" : "Endereço adicionado",
-        description: address 
-          ? "Seu endereço foi atualizado com sucesso." 
+        description: address
+          ? "Seu endereço foi atualizado com sucesso."
           : "Seu endereço foi adicionado com sucesso."
       })
     } catch (error) {
-      console.error("Error saving address:", error)
+      console.error("Erro ao salvar endereço:", error)
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Ocorreu um erro inesperado.",
@@ -112,41 +113,43 @@ export default function AddressSection() {
     }
   }
 
+  // Validação do formulário
   const validateAddressForm = () => {
     const errors: Record<string, string> = {}
-    
+
     if (!currentAddress) return false
-    
+
     if (!currentAddress.street) {
       errors.street = 'A rua é obrigatória'
     }
-    
+
     if (!currentAddress.number) {
       errors.number = 'O número é obrigatório'
     }
-    
+
     if (!currentAddress.neighborhood) {
       errors.neighborhood = 'O bairro é obrigatório'
     }
-    
+
     if (!currentAddress.city) {
       errors.city = 'A cidade é obrigatória'
     }
-    
+
     if (!currentAddress.state) {
       errors.state = 'O estado é obrigatório'
     }
-    
+
     if (!currentAddress.zipCode) {
       errors.zipCode = 'O CEP é obrigatório'
     } else if (!/^\d{5}-?\d{3}$/.test(currentAddress.zipCode.replace(/\D/g, ''))) {
       errors.zipCode = 'CEP inválido'
     }
-    
+
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
 
+  // Atualização dos inputs do formulário
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     if (currentAddress) {
@@ -157,6 +160,7 @@ export default function AddressSection() {
     }
   }
 
+  // Adicionar novo endereço
   const addNewAddress = () => {
     setCurrentAddress({
       street: '',
@@ -170,34 +174,27 @@ export default function AddressSection() {
     setIsAddressDialogOpen(true)
   }
 
+  // Editar endereço existente
   const editAddress = () => {
     if (address) {
-      setCurrentAddress({
-        ...address
-      })
+      setCurrentAddress({ ...address })
     } else {
-      // If no address exists yet, set up a new one
-      setCurrentAddress({
-        street: '',
-        number: '',
-        complement: '',
-        neighborhood: '',
-        city: '',
-        state: '',
-        zipCode: ''
-      })
+      addNewAddress()
     }
     setIsAddressDialogOpen(true)
   }
 
+  // Formata a linha principal do endereço
   const formatAddress = (address: Address) => {
     return `${address.street}, ${address.number}${address.complement ? `, ${address.complement}` : ''}`;
   }
 
+  // Formata bairro, cidade e estado
   const formatCityState = (address: Address) => {
     return `${address.neighborhood} - ${address.city}, ${address.state}`;
   }
 
+  // Enquanto carrega, exibe loader
   if (isLoading) {
     return (
       <div className="flex justify-center p-4">
@@ -250,6 +247,7 @@ export default function AddressSection() {
         </Card>
       )}
 
+      {/* Modal de adicionar/editar endereço */}
       <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
         <DialogContent>
           <DialogHeader>

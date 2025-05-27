@@ -1,11 +1,12 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { API_URL, API_ENDPOINTS, authFetchConfig } from "@/lib/api"
+import { API_ENDPOINTS, authFetchConfig } from "@/lib/api"
 import { 
   Edit, CreditCard, CheckCircle2, 
   Wallet, BanknoteIcon 
@@ -44,7 +45,7 @@ export default function PaymentMethodSection() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
-  // Fetch payment method
+  // Buscar método de pagamento
   useEffect(() => {
     const fetchPaymentMethod = async () => {
       try {
@@ -52,13 +53,13 @@ export default function PaymentMethodSection() {
         const response = await fetch(API_ENDPOINTS.getPaymentMethod, authFetchConfig())
         
         if (!response.ok) {
-          throw new Error('Failed to fetch payment method')
+          throw new Error('Falha ao buscar método de pagamento')
         }
         
         const data = await response.json()
         setPaymentMethod(data.paymentMethod || null)
       } catch (error) {
-        console.error("Error fetching payment method:", error)
+        console.error("Erro ao buscar método de pagamento:", error)
         toast({
           title: "Erro",
           description: "Não foi possível carregar seu método de pagamento.",
@@ -75,15 +76,12 @@ export default function PaymentMethodSection() {
   const handlePaymentSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     
-    if (!validatePaymentForm()) {
-      return
-    }
-    
+    if (!validatePaymentForm()) return
+
     try {
       const url = API_ENDPOINTS.updatePaymentMethod
       const method = 'PUT'
       
-      // Fix: Pass currentPayment directly as the body parameter
       const response = await fetch(url, {
         method,
         headers: {
@@ -94,24 +92,23 @@ export default function PaymentMethodSection() {
       })
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Falha ao atualizar método de pagamento');
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Falha ao atualizar método de pagamento')
       }
       
       const data = await response.json()
       
-      // Update payment method state
       setPaymentMethod(data.paymentMethod)
       setIsPaymentDialogOpen(false)
       
       toast({
-        title: paymentMethod ? "Método de pagamento atualizado" : "Método de pagamento adicionado",
+        title: paymentMethod ? "Método atualizado" : "Método adicionado",
         description: paymentMethod 
-          ? "Seu método de pagamento foi atualizado com sucesso." 
+          ? "Seu método de pagamento foi atualizado com sucesso."
           : "Seu método de pagamento foi adicionado com sucesso."
       })
     } catch (error) {
-      console.error("Error saving payment method:", error)
+      console.error("Erro ao salvar método de pagamento:", error)
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Ocorreu um erro inesperado.",
@@ -124,27 +121,25 @@ export default function PaymentMethodSection() {
     const errors: Record<string, string> = {}
     
     if (!currentPayment) return false
-    
-    if (!currentPayment.type) {
-      errors.type = 'O tipo de cartão é obrigatório'
-    }
-    
+
+    if (!currentPayment.type) errors.type = 'O tipo de cartão é obrigatório'
+
     if (!currentPayment.cardNumber) {
       errors.cardNumber = 'O número do cartão é obrigatório'
     } else if (!/^\d{13,19}$/.test(currentPayment.cardNumber.replace(/\s/g, ''))) {
       errors.cardNumber = 'Número de cartão inválido'
     }
-    
+
     if (!currentPayment.cardHolderName) {
       errors.cardHolderName = 'O nome do titular é obrigatório'
     }
-    
+
     if (!currentPayment.expirationDate) {
       errors.expirationDate = 'A data de validade é obrigatória'
     } else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(currentPayment.expirationDate)) {
       errors.expirationDate = 'Formato inválido. Use MM/AA'
     }
-    
+
     if (!currentPayment.cvv) {
       errors.cvv = 'O código de segurança é obrigatório'
     } else if (!/^\d{3,4}$/.test(currentPayment.cvv)) {
@@ -186,43 +181,29 @@ export default function PaymentMethodSection() {
   }
 
   const editPaymentMethod = () => {
-    if (paymentMethod) {
-      setCurrentPayment({
-        ...paymentMethod,
-        cvv: '' // Clear CVV for security
-      })
-    } else {
-      // If no payment method exists yet, set up a new one
-      setCurrentPayment({
-        type: 'credit',
-        cardNumber: '',
-        cardHolderName: '',
-        expirationDate: '',
-        cvv: ''
-      })
-    }
+    setCurrentPayment(paymentMethod ? { ...paymentMethod, cvv: '' } : {
+      type: 'credit',
+      cardNumber: '',
+      cardHolderName: '',
+      expirationDate: '',
+      cvv: ''
+    })
     setIsPaymentDialogOpen(true)
   }
 
   const getPaymentIcon = (type: string) => {
     switch (type) {
-      case 'credit':
-        return <CreditCard className="h-5 w-5 text-blue-600" />
-      case 'debit':
-        return <BanknoteIcon className="h-5 w-5 text-green-600" />
-      default:
-        return <Wallet className="h-5 w-5" />
+      case 'credit': return <CreditCard className="h-5 w-5 text-blue-600" />
+      case 'debit': return <BanknoteIcon className="h-5 w-5 text-green-600" />
+      default: return <Wallet className="h-5 w-5" />
     }
   }
 
   const getPaymentTypeLabel = (type: string) => {
     switch (type) {
-      case 'credit':
-        return 'Cartão de Crédito'
-      case 'debit':
-        return 'Cartão de Débito'
-      default:
-        return type
+      case 'credit': return 'Cartão de Crédito'
+      case 'debit': return 'Cartão de Débito'
+      default: return type
     }
   }
 
@@ -292,10 +273,7 @@ export default function PaymentMethodSection() {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="type">Tipo de Cartão *</Label>
-                <Select 
-                  value={currentPayment?.type} 
-                  onValueChange={handleSelectChange}
-                >
+                <Select value={currentPayment?.type} onValueChange={handleSelectChange}>
                   <SelectTrigger id="type">
                     <SelectValue placeholder="Selecione o tipo de cartão" />
                   </SelectTrigger>
@@ -304,9 +282,7 @@ export default function PaymentMethodSection() {
                     <SelectItem value="debit">Cartão de Débito</SelectItem>
                   </SelectContent>
                 </Select>
-                {formErrors.type && (
-                  <p className="text-xs text-red-600">{formErrors.type}</p>
-                )}
+                {formErrors.type && <p className="text-xs text-red-600">{formErrors.type}</p>}
               </div>
 
               <div className="space-y-2">
@@ -318,26 +294,24 @@ export default function PaymentMethodSection() {
                   value={currentPayment?.cardNumber || ""}
                   onChange={handleInputChange}
                 />
-                {formErrors.cardNumber && (
-                  <p className="text-xs text-red-600">{formErrors.cardNumber}</p>
-                )}
+                {formErrors.cardNumber && <p className="text-xs text-red-600">{formErrors.cardNumber}</p>}
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="cardHolderName">Nome no Cartão *</Label>
                 <Input
                   id="cardHolderName"
                   name="cardHolderName"
-                  placeholder="João Silva Santos"
+                  placeholder="João Silva"
                   value={currentPayment?.cardHolderName || ""}
                   onChange={handleInputChange}
                 />
-                {formErrors.cardHolderName && (
-                  <p className="text-xs text-red-600">{formErrors.cardHolderName}</p>
-                )}
+                {formErrors.cardHolderName && <p className="text-xs text-red-600">{formErrors.cardHolderName}</p>}
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="expirationDate">Data de Validade *</Label>
+                  <Label htmlFor="expirationDate">Validade *</Label>
                   <Input
                     id="expirationDate"
                     name="expirationDate"
@@ -346,12 +320,11 @@ export default function PaymentMethodSection() {
                     onChange={handleInputChange}
                     maxLength={5}
                   />
-                  {formErrors.expirationDate && (
-                    <p className="text-xs text-red-600">{formErrors.expirationDate}</p>
-                  )}
+                  {formErrors.expirationDate && <p className="text-xs text-red-600">{formErrors.expirationDate}</p>}
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="cvv">Código de Segurança *</Label>
+                  <Label htmlFor="cvv">CVV *</Label>
                   <Input
                     id="cvv"
                     name="cvv"
@@ -361,17 +334,13 @@ export default function PaymentMethodSection() {
                     onChange={handleInputChange}
                     maxLength={4}
                   />
-                  {formErrors.cvv && (
-                    <p className="text-xs text-red-600">{formErrors.cvv}</p>
-                  )}
+                  {formErrors.cvv && <p className="text-xs text-red-600">{formErrors.cvv}</p>}
                 </div>
               </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancelar
-                </Button>
+                <Button type="button" variant="outline">Cancelar</Button>
               </DialogClose>
               <Button type="submit" className="bg-red-600 hover:bg-red-700">
                 {paymentMethod ? "Atualizar" : "Adicionar"}

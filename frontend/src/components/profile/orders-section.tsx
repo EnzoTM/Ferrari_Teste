@@ -1,13 +1,15 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
-import { API_URL, API_ENDPOINTS, authFetchConfig } from "@/lib/api"
+import { API_ENDPOINTS, authFetchConfig } from "@/lib/api"
 import { Package, ChevronRight } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 
+// Interface tipando o pedido
 interface Order {
   _id: string
   orderItem: Array<{
@@ -45,7 +47,7 @@ export default function OrdersSection() {
   const { toast } = useToast()
   const router = useRouter()
 
-  // Fetch orders
+  // Buscar pedidos na API ao montar o componente
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -53,14 +55,14 @@ export default function OrdersSection() {
         const response = await fetch(API_ENDPOINTS.orders, authFetchConfig())
         
         if (!response.ok) {
-          console.error(`Error fetching orders: ${response.status} - ${response.statusText}`)
-          throw new Error(`Failed to fetch orders: ${response.statusText}`)
+          console.error(`Erro ao buscar pedidos: ${response.status} - ${response.statusText}`)
+          throw new Error(`Falha ao buscar pedidos: ${response.statusText}`)
         }
         
         const data = await response.json()
         setOrders(Array.isArray(data.orders) ? data.orders : [])
       } catch (error) {
-        console.error("Error fetching orders:", error)
+        console.error("Erro ao buscar pedidos:", error)
         toast({
           title: "Erro ao carregar pedidos",
           description: "Não foi possível carregar seus pedidos. Tente novamente mais tarde.",
@@ -75,6 +77,7 @@ export default function OrdersSection() {
     fetchOrders()
   }, [toast])
 
+  // Formatar data para padrão brasileiro
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return new Intl.DateTimeFormat('pt-BR', {
@@ -84,6 +87,7 @@ export default function OrdersSection() {
     }).format(date)
   }
 
+  // Redirecionar para a página de detalhes do pedido
   const handleOrderClick = (orderId: string) => {
     router.push(`/order?orderId=${orderId}`)
   }

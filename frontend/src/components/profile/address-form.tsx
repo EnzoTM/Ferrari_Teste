@@ -1,13 +1,16 @@
 "use client"
 
+// importando tipos e hooks do React
 import type React from "react"
-
 import { useState, useEffect } from "react"
+
+// importando componentes de UI
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 
+// interface representando um endereço
 interface Address {
   id: string
   name: string
@@ -19,14 +22,17 @@ interface Address {
   isDefault: boolean
 }
 
+// props do formulário de endereço
 interface AddressFormProps {
   address: Address | null
-  onSave: (address: Address) => void
-  onCancel: () => void
-  addresses: Address[]
+  onSave: (address: Address) => void // função de callback ao salvar
+  onCancel: () => void // função de callback ao cancelar
+  addresses: Address[] // lista de endereços existentes
 }
 
+// componente principal do formulário de endereço
 export default function AddressForm({ address, onSave, onCancel, addresses }: AddressFormProps) {
+  // estado do formulário; se não tiver id é porque é um novo endereço
   const [formData, setFormData] = useState<Omit<Address, "id"> & { id?: string }>({
     name: "",
     street: "",
@@ -37,12 +43,12 @@ export default function AddressForm({ address, onSave, onCancel, addresses }: Ad
     isDefault: false,
   })
 
-  // If editing, populate form with address data
+  // se estiver editando, preenche o formulário com os dados
   useEffect(() => {
     if (address) {
       setFormData(address)
     } else {
-      // If this is the first address, make it default
+      // se for o primeiro endereço, define como padrão
       setFormData((prev) => ({
         ...prev,
         isDefault: addresses.length === 0,
@@ -50,28 +56,31 @@ export default function AddressForm({ address, onSave, onCancel, addresses }: Ad
     }
   }, [address, addresses])
 
+  // função para atualizar os campos de texto
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // função para atualizar o switch de endereço padrão
   const handleSwitchChange = (checked: boolean) => {
     setFormData((prev) => ({ ...prev, isDefault: checked }))
   }
 
+  // função para lidar com o envio do formulário
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(formData as Address)
+    onSave(formData as Address) // chama a função de salvar passando os dados
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Address Name</Label>
+        <Label htmlFor="name">Nome do Endereço</Label>
         <Input
           id="name"
           name="name"
-          placeholder="Home, Work, etc."
+          placeholder="Casa, Trabalho, etc."
           value={formData.name}
           onChange={handleInputChange}
           required
@@ -79,11 +88,11 @@ export default function AddressForm({ address, onSave, onCancel, addresses }: Ad
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="street">Street Address</Label>
+        <Label htmlFor="street">Endereço</Label>
         <Input
           id="street"
           name="street"
-          placeholder="123 Main St"
+          placeholder="Rua Exemplo, 123"
           value={formData.street}
           onChange={handleInputChange}
           required
@@ -92,22 +101,22 @@ export default function AddressForm({ address, onSave, onCancel, addresses }: Ad
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="city">City</Label>
+          <Label htmlFor="city">Cidade</Label>
           <Input
             id="city"
             name="city"
-            placeholder="New York"
+            placeholder="São Paulo"
             value={formData.city}
             onChange={handleInputChange}
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="state">State/Province</Label>
+          <Label htmlFor="state">Estado/Província</Label>
           <Input
             id="state"
             name="state"
-            placeholder="NY"
+            placeholder="SP"
             value={formData.state}
             onChange={handleInputChange}
             required
@@ -117,22 +126,22 @@ export default function AddressForm({ address, onSave, onCancel, addresses }: Ad
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="zipCode">Zip/Postal Code</Label>
+          <Label htmlFor="zipCode">CEP</Label>
           <Input
             id="zipCode"
             name="zipCode"
-            placeholder="10001"
+            placeholder="00000-000"
             value={formData.zipCode}
             onChange={handleInputChange}
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="country">Country</Label>
+          <Label htmlFor="country">País</Label>
           <Input
             id="country"
             name="country"
-            placeholder="United States"
+            placeholder="Brasil"
             value={formData.country}
             onChange={handleInputChange}
             required
@@ -145,17 +154,17 @@ export default function AddressForm({ address, onSave, onCancel, addresses }: Ad
           id="isDefault"
           checked={formData.isDefault}
           onCheckedChange={handleSwitchChange}
-          disabled={addresses.length === 0} // If this is the first address, it must be default
+          disabled={addresses.length === 0} // se for o primeiro, já é padrão
         />
-        <Label htmlFor="isDefault">Set as default address</Label>
+        <Label htmlFor="isDefault">Definir como endereço padrão</Label>
       </div>
 
       <div className="flex justify-end space-x-4 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
+          Cancelar
         </Button>
         <Button type="submit" className="bg-red-600 hover:bg-red-700">
-          {address ? "Update Address" : "Add Address"}
+          {address ? "Atualizar Endereço" : "Adicionar Endereço"}
         </Button>
       </div>
     </form>

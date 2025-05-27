@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
+// interface representando um endereço
 interface Address {
   id: string
   name: string
@@ -35,7 +36,7 @@ export default function AddressList() {
   const [editingAddress, setEditingAddress] = useState<Address | null>(null)
   const { toast } = useToast()
 
-  // Load addresses from localStorage
+  // Carrega os endereços do localStorage
   useEffect(() => {
     const storedAddresses = localStorage.getItem("userAddresses")
     if (storedAddresses) {
@@ -59,20 +60,23 @@ export default function AddressList() {
     }
   }, [])
 
+  // função para iniciar adição de novo endereço
   const handleAddAddress = () => {
     setEditingAddress(null)
     setShowForm(true)
   }
 
+  // função para iniciar edição de um endereço
   const handleEditAddress = (address: Address) => {
     setEditingAddress(address)
     setShowForm(true)
   }
 
+  // função para deletar um endereço
   const handleDeleteAddress = (id: string) => {
     const updatedAddresses = addresses.filter((address) => address.id !== id)
 
-    // If we deleted the default address, make the first one default
+    // Se deletou o endereço padrão, define o primeiro como padrão
     if (addresses.find((addr) => addr.id === id)?.isDefault && updatedAddresses.length > 0) {
       updatedAddresses[0].isDefault = true
     }
@@ -81,11 +85,12 @@ export default function AddressList() {
     localStorage.setItem("userAddresses", JSON.stringify(updatedAddresses))
 
     toast({
-      title: "Address deleted",
-      description: "The address has been deleted successfully",
+      title: "Endereço excluído",
+      description: "O endereço foi excluído com sucesso",
     })
   }
 
+  // função para definir um endereço como padrão
   const handleSetDefault = (id: string) => {
     const updatedAddresses = addresses.map((address) => ({
       ...address,
@@ -96,26 +101,27 @@ export default function AddressList() {
     localStorage.setItem("userAddresses", JSON.stringify(updatedAddresses))
 
     toast({
-      title: "Default address updated",
-      description: "Your default address has been updated",
+      title: "Endereço padrão atualizado",
+      description: "Seu endereço padrão foi atualizado",
     })
   }
 
+  // função para salvar novo ou editar endereço existente
   const handleSaveAddress = (address: Address) => {
     let updatedAddresses: Address[]
 
     if (editingAddress) {
-      // Editing existing address
+      // Editando endereço existente
       updatedAddresses = addresses.map((addr) => (addr.id === address.id ? address : addr))
     } else {
-      // Adding new address
+      // Adicionando novo endereço
       const newAddress = {
         ...address,
         id: `addr${Date.now()}`,
         isDefault: addresses.length === 0 ? true : address.isDefault,
       }
 
-      // If this is marked as default, update other addresses
+      // Se for definido como padrão, atualiza os outros
       if (newAddress.isDefault) {
         updatedAddresses = addresses.map((addr) => ({
           ...addr,
@@ -132,20 +138,20 @@ export default function AddressList() {
     setShowForm(false)
 
     toast({
-      title: editingAddress ? "Address updated" : "Address added",
+      title: editingAddress ? "Endereço atualizado" : "Endereço adicionado",
       description: editingAddress
-        ? "Your address has been updated successfully"
-        : "Your new address has been added successfully",
+        ? "Seu endereço foi atualizado com sucesso"
+        : "Seu novo endereço foi adicionado com sucesso",
     })
   }
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold">My Addresses</h2>
+        <h2 className="text-xl font-semibold">Meus Endereços</h2>
         <Button className="bg-red-600 hover:bg-red-700" onClick={handleAddAddress}>
           <Plus className="mr-2 h-4 w-4" />
-          Add New Address
+          Adicionar Novo Endereço
         </Button>
       </div>
 
@@ -160,16 +166,16 @@ export default function AddressList() {
         <div className="grid gap-4 md:grid-cols-2">
           {addresses.length === 0 ? (
             <div className="col-span-2 rounded-lg border border-dashed p-8 text-center">
-              <p className="text-gray-500">You don&apos;t have any saved addresses yet.</p>
+              <p className="text-gray-500">Você ainda não tem endereços salvos.</p>
               <Button className="mt-4 bg-red-600 hover:bg-red-700" onClick={handleAddAddress}>
-                Add Your First Address
+                Adicionar Seu Primeiro Endereço
               </Button>
             </div>
           ) : (
             addresses.map((address) => (
               <Card key={address.id} className="relative overflow-hidden">
                 {address.isDefault && (
-                  <div className="absolute right-0 top-0 bg-red-600 px-2 py-1 text-xs text-white">Default</div>
+                  <div className="absolute right-0 top-0 bg-red-600 px-2 py-1 text-xs text-white">Padrão</div>
                 )}
                 <CardContent className="p-4">
                   <div className="mb-2 flex items-center justify-between">
@@ -182,30 +188,30 @@ export default function AddressList() {
                         onClick={() => handleEditAddress(address)}
                       >
                         <Edit className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
+                        <span className="sr-only">Editar</span>
                       </Button>
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600">
                             <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
+                            <span className="sr-only">Excluir</span>
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Address</AlertDialogTitle>
+                            <AlertDialogTitle>Excluir Endereço</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete this address? This action cannot be undone.
+                              Tem certeza que deseja excluir este endereço? Esta ação não pode ser desfeita.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
                               className="bg-red-600 hover:bg-red-700"
                               onClick={() => handleDeleteAddress(address.id)}
                             >
-                              Delete
+                              Excluir
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -229,7 +235,7 @@ export default function AddressList() {
                       onClick={() => handleSetDefault(address.id)}
                     >
                       <Check className="mr-1 h-3 w-3" />
-                      Set as Default
+                      Definir como Padrão
                     </Button>
                   )}
                 </CardContent>

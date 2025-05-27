@@ -1,4 +1,5 @@
 "use client"
+
 import { useEffect, useState } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { API_ENDPOINTS, authFetchConfig } from "@/lib/api"
@@ -16,7 +17,7 @@ export function UserProfileSection() {
         
         const userId = localStorage.getItem('userId')
         if (!userId) {
-          throw new Error('User ID not found')
+          throw new Error('ID de usuário não encontrado')
         }
         
         const response = await fetch(
@@ -25,13 +26,13 @@ export function UserProfileSection() {
         )
         
         if (!response.ok) {
-          throw new Error('Failed to fetch user data')
+          throw new Error('Falha ao buscar dados do usuário')
         }
         
         const data = await response.json()
         setUserData(data.user)
       } catch (error) {
-        console.error("Error fetching user data:", error)
+        console.error("Erro ao buscar dados do usuário:", error)
         toast({
           title: "Erro",
           description: "Não foi possível carregar suas informações pessoais.",

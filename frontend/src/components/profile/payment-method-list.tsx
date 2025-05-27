@@ -7,6 +7,7 @@ import { Plus, Edit, CreditCard } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import PaymentMethodForm from "./payment-method-form"
 
+// Interface do método de pagamento
 interface PaymentMethod {
   id: string
   cardName: string
@@ -21,7 +22,7 @@ export default function PaymentMethodList() {
   const [showForm, setShowForm] = useState(false)
   const { toast } = useToast()
 
-  // Load payment method from localStorage
+  // Carregar método de pagamento do localStorage
   useEffect(() => {
     const storedPaymentMethod = localStorage.getItem("userPaymentMethod")
     if (storedPaymentMethod) {
@@ -38,10 +39,9 @@ export default function PaymentMethodList() {
   }
 
   const handleSavePaymentMethod = (paymentMethod: PaymentMethod) => {
-    // For new payment method or updating existing one
     const updatedPaymentMethod = {
       ...paymentMethod,
-      id: "card1", // Just use a fixed ID since we only have one card
+      id: "card1" // Apenas um cartão, então ID fixo
     }
 
     setPaymentMethod(updatedPaymentMethod)
@@ -49,14 +49,14 @@ export default function PaymentMethodList() {
     setShowForm(false)
 
     toast({
-      title: paymentMethod ? "Payment method updated" : "Payment method added",
+      title: paymentMethod ? "Método de pagamento atualizado" : "Método de pagamento adicionado",
       description: paymentMethod
-        ? "Your payment method has been updated successfully"
-        : "Your payment method has been added successfully",
+        ? "Seu método de pagamento foi atualizado com sucesso."
+        : "Seu método de pagamento foi adicionado com sucesso."
     })
   }
 
-  // Helper function to get card icon based on card type
+  // Ícone do cartão conforme o tipo
   const getCardIcon = (cardType: string) => {
     return <CreditCard className="h-5 w-5" />
   }
@@ -64,7 +64,7 @@ export default function PaymentMethodList() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Payment Method</h2>
+        <h2 className="text-xl font-semibold">Método de Pagamento</h2>
         <Button 
           className="bg-red-600 hover:bg-red-700" 
           onClick={paymentMethod ? handleEditPaymentMethod : handleAddPaymentMethod}
@@ -72,12 +72,12 @@ export default function PaymentMethodList() {
           {paymentMethod ? (
             <>
               <Edit className="mr-2 h-4 w-4" />
-              Edit Card
+              Editar Cartão
             </>
           ) : (
             <>
               <Plus className="mr-2 h-4 w-4" />
-              Add Card
+              Adicionar Cartão
             </>
           )}
         </Button>
@@ -93,14 +93,14 @@ export default function PaymentMethodList() {
         <div>
           {!paymentMethod ? (
             <div className="col-span-2 rounded-lg border border-dashed p-8 text-center">
-              <p className="text-gray-500">You don&apos;t have any saved payment method yet.</p>
+              <p className="text-gray-500">Você ainda não possui nenhum método de pagamento salvo.</p>
               <Button className="mt-4 bg-red-600 hover:bg-red-700" onClick={handleAddPaymentMethod}>
-                Add Your Card
+                Adicionar Cartão
               </Button>
             </div>
           ) : (
             <Card className="relative overflow-hidden">
-              <div className="absolute right-0 top-0 bg-red-600 px-2 py-1 text-xs text-white">Default</div>
+              <div className="absolute right-0 top-0 bg-red-600 px-2 py-1 text-xs text-white">Padrão</div>
               <CardContent className="p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center">
@@ -116,14 +116,14 @@ export default function PaymentMethodList() {
                     onClick={handleEditPaymentMethod}
                   >
                     <Edit className="h-4 w-4" />
-                    <span className="sr-only">Edit</span>
+                    <span className="sr-only">Editar</span>
                   </Button>
                 </div>
 
                 <div className="space-y-1 text-sm">
                   <p className="font-medium">{paymentMethod.cardName}</p>
                   <p>{paymentMethod.cardNumber}</p>
-                  <p>Expires: {paymentMethod.expiryDate}</p>
+                  <p>Validade: {paymentMethod.expiryDate}</p>
                 </div>
               </CardContent>
             </Card>
