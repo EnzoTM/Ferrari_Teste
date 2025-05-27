@@ -50,9 +50,9 @@ const checkAdmin = (req, res, next) => {
   next();
 };
 
-// Export as default for backward compatibility
+// Exportar como padrao para compatibilidade com codigo legado
 module.exports = verifyToken;
 
-// Named exports for new code
+// Exportaçoes nomeadas para novo codigo
 module.exports.validateToken = validateToken;
 module.exports.checkAdmin = checkAdmin;
