@@ -17,9 +17,10 @@ interface ProductCardProps {
 
 // Componente do Card de Produto
 export default function ProductCard({ product }: ProductCardProps) {
-  const { addItem, isLoading } = useCart()  // contexto do carrinho
+  const { addItem, getItemQuantityInCart } = useCart()  // contexto do carrinho
   const [imageError, setImageError] = useState(false)  // estado para erro na imagem
   const [isPlaying, setIsPlaying] = useState(false)  // estado do áudio
+  const [isAddingToCart, setIsAddingToCart] = useState(false)  // estado local para este card
   const audioRef = useRef<HTMLAudioElement>(null)  // referência do áudio
 
   // Função para obter a URL correta da imagem
@@ -40,15 +41,21 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   // Adiciona o produto ao carrinho
   const handleAddToCart = async () => {
-    const cartItem = {
-      id: product._id || '',
-      name: product.name,
-      price: product.price,
-      image: getImageUrl(),
-      quantity: 1,
-      category: product.type
+    setIsAddingToCart(true)
+    try {
+      const cartItem = {
+        id: product._id || '',
+        productId: product._id || '',
+        name: product.name,
+        price: product.price,
+        image: getImageUrl(),
+        quantity: 1,
+        category: product.type
+      }
+      await addItem(cartItem)
+    } finally {
+      setIsAddingToCart(false)
     }
-    await addItem(cartItem)
   }
 
   // Toca ou pausa o áudio
@@ -71,6 +78,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   // Verifica se está fora de estoque
   const isOutOfStock = product.stock !== undefined ? product.stock <= 0 : false
+  
+  // Verifica se há estoque disponível considerando itens no carrinho
+  const quantityInCart = getItemQuantityInCart(product._id || '')
+  const availableStock = (product.stock || 0) - quantityInCart
+  const canAddToCart = availableStock > 0 && !isOutOfStock
 
   return (
     <Card className="group overflow-hidden transition-all hover:shadow-lg">
@@ -153,7 +165,18 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Informação de estoque */}
         {product.stock !== undefined && (
           <p className="text-sm text-gray-500">
-            {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}
+            {product.stock > 0 ? (
+              <>
+                {product.stock} em estoque
+                {quantityInCart > 0 && (
+                  <span className="ml-1 text-blue-600">
+                    ({quantityInCart} no carrinho)
+                  </span>
+                )}
+              </>
+            ) : (
+              'Fora de estoque'
+            )}
           </p>
         )}
       </CardContent>
@@ -163,13 +186,19 @@ export default function ProductCard({ product }: ProductCardProps) {
         <Button
           className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50"
           onClick={handleAddToCart}
-          disabled={isLoading || isOutOfStock}
+          disabled={isAddingToCart || !canAddToCart}
         >
-          {isLoading ? (
+          {isAddingToCart ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Adicionando...
             </>
+          ) : !canAddToCart ? (
+            isOutOfStock ? (
+              'Fora de Estoque'
+            ) : (
+              'Estoque Insuficiente'
+            )
           ) : (
             <>
               <ShoppingCart className="mr-2 h-4 w-4" />

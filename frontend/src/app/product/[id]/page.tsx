@@ -19,7 +19,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null)
   const router = useRouter()
   const { toast } = useToast()
-  const { addItem } = useCart()
+  const { addItem, getItemQuantityInCart } = useCart()
   
   const [product, setProduct] = useState<IProduct | null>(null)
   const [loading, setLoading] = useState(true)
@@ -120,7 +120,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     if (!product) return
 
     addItem({
-      id: product._id!,
+      id: product._id!, // This will be overwritten by backend cart item ID
+      productId: product._id!, // Product ID for stock checking
       name: product.name,
       price: product.price,
       image: product.images?.[0] || '',
@@ -130,8 +131,12 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   }
 
   const increaseQuantity = () => {
-    if (product && quantity < (product.stock || 0)) {
-      setQuantity(prev => prev + 1)
+    if (product) {
+      const quantityInCart = getItemQuantityInCart(product._id!)
+      const availableStock = (product.stock || 0) - quantityInCart
+      if (quantity < availableStock) {
+        setQuantity(prev => prev + 1)
+      }
     }
   }
 
@@ -140,6 +145,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       setQuantity(prev => prev - 1)
     }
   }
+
+  // Calculate available stock considering cart items
+  const quantityInCart = product ? getItemQuantityInCart(product._id!) : 0
+  const availableStock = product ? (product.stock || 0) - quantityInCart : 0
 
   if (loading) {
     return (
@@ -284,7 +293,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   variant="outline"
                   size="icon"
                   onClick={increaseQuantity}
-                  disabled={quantity >= (product.stock || 0)}
+                  disabled={quantity >= availableStock}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -292,17 +301,22 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             </div>
 
             <div className="text-sm text-gray-600">
-              <span>Estoque disponível: {product.stock || 0} unidades</span>
+              <span>Estoque disponível: {availableStock} unidades</span>
+              {quantityInCart > 0 && (
+                <span className="ml-2 text-blue-600">
+                  ({quantityInCart} já no carrinho)
+                </span>
+              )}
             </div>
 
             <Button
               size="lg"
               className="w-full bg-red-600 hover:bg-red-700"
               onClick={handleAddToCart}
-              disabled={!product.stock || product.stock <= 0}
+              disabled={availableStock <= 0 || quantity > availableStock}
             >
               <ShoppingCart className="mr-2 h-4 w-4" />
-              Adicionar ao Carrinho
+              {availableStock <= 0 ? 'Estoque Insuficiente' : 'Adicionar ao Carrinho'}
             </Button>
           </div>
         </div>

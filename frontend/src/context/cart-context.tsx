@@ -6,6 +6,7 @@ import { API_ENDPOINTS, authFetchConfig, isAuthenticated } from "@/lib/api"
 
 export interface ICartItem {
   id: string
+  productId: string // Add product ID for stock checking
   name: string
   price: number
   image: string
@@ -27,6 +28,7 @@ interface CartContextState {
   updateItemQuantity: (id: string, quantity: number) => Promise<void>
   clearCart: () => Promise<void>
   itemCount: number
+  getItemQuantityInCart: (productId: string) => number
 }
 
 const CartContext = createContext<CartContextState | undefined>(undefined)
@@ -77,6 +79,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         
         const cartItems: ICartItem[] = validCartItems.map((item: any) => ({
           id: item._id, // Use cart item's _id, not product._id
+          productId: item.product._id, // Add product ID for stock checking
           name: item.product.name,
           price: item.product.price,
           image: item.product.images && item.product.images.length > 0 
@@ -109,10 +112,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      setIsLoading(true)
-      
+      // Não usar setIsLoading aqui para evitar bloquear todos os botões
       const response = await fetch(API_ENDPOINTS.addToCart, authFetchConfig('POST', {
-        productId: item.id,
+        productId: item.productId, // Use productId for backend
         quantity: item.quantity || 1
       }))
 
@@ -133,8 +135,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         description: error instanceof Error ? error.message : "Erro ao adicionar item ao carrinho.",
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -189,13 +189,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         await loadCartFromBackend() // Reload cart from backend
       } else {
-        throw new Error("Erro ao atualizar quantidade")
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Erro ao atualizar quantidade")
       }
     } catch (error) {
       console.error("Error updating item quantity:", error)
       toast({
         title: "Erro",
-        description: "Erro ao atualizar quantidade do item.",
+        description: error instanceof Error ? error.message : "Erro ao atualizar quantidade do item.",
         variant: "destructive",
       })
     } finally {
@@ -228,6 +229,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Function to get current quantity of a product in cart by product ID
+  const getItemQuantityInCart = (productId: string): number => {
+    const cartItem = cart.items.find(item => item.productId === productId)
+    return cartItem?.quantity || 0
+  }
+
   const value: CartContextState = {
     cart,
     isLoading,
@@ -235,7 +242,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     removeItem,
     updateItemQuantity,
     clearCart,
-    itemCount: cart.itemCount
+    itemCount: cart.itemCount,
+    getItemQuantityInCart
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

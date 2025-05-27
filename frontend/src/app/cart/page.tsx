@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -20,9 +20,50 @@ export default function CartPage() {
   } = useCart()
   const { toast } = useToast()
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
+  const [productStocks, setProductStocks] = useState<Record<string, number>>({})
+
+  // Load product stocks when cart changes
+  useEffect(() => {
+    const loadProductStocks = async () => {
+      if (cart.items.length === 0) return
+
+      const stocks: Record<string, number> = {}
+      
+      for (const item of cart.items) {
+        try {
+          // Use productId to fetch stock information
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/products/${item.productId}`)
+          if (response.ok) {
+            const data = await response.json()
+            if (data.product) {
+              stocks[item.id] = data.product.stock || 0 // Map cart item ID to stock
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching stock for product ${item.productId}:`, error)
+          stocks[item.id] = 0
+        }
+      }
+      
+      setProductStocks(stocks)
+    }
+
+    loadProductStocks()
+  }, [cart.items])
 
   const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return
+    
+    // Check stock limit
+    const productStock = productStocks[itemId] || 0
+    if (newQuantity > productStock) {
+      toast({
+        title: "Estoque insuficiente",
+        description: `Apenas ${productStock} unidades disponíveis em estoque.`,
+        variant: "destructive"
+      })
+      return
+    }
     
     setIsUpdating(itemId)
     try {
@@ -63,19 +104,15 @@ export default function CartPage() {
 
   const getImageUrl = (item: any) => {
     if (item.image) {
-      // If it's already a full URL, use it
       if (item.image.startsWith('http')) {
         return item.image
       }
-      // If it starts with /public, construct the full URL
       if (item.image.startsWith('/public')) {
         return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${item.image}`
       }
-      // If it's just a filename, construct the full URL
       if (!item.image.startsWith('/')) {
         return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/public/images/products/${item.image}`
       }
-      // If it starts with /, use as is
       return item.image
     }
     return "/placeholder.svg"
@@ -107,14 +144,12 @@ export default function CartPage() {
       <h1 className="mb-8 text-3xl font-bold">Carrinho de Compras</h1>
       
       <div className="grid gap-8 lg:grid-cols-3">
-        {/* Cart Items */}
         <div className="lg:col-span-2">
           <div className="space-y-4">
             {cart.items.map((item) => (
               <Card key={item.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-4">
-                    {/* Product Image */}
                     <div className="relative h-20 w-20 overflow-hidden rounded-lg">
                       <Image
                         src={getImageUrl(item)}
@@ -127,7 +162,6 @@ export default function CartPage() {
                       />
                     </div>
                     
-                    {/* Product Details */}
                     <div className="flex-1">
                       <h3 className="font-semibold">{item.name}</h3>
                       <p className="text-sm text-gray-600">
@@ -140,7 +174,6 @@ export default function CartPage() {
                       )}
                     </div>
                     
-                    {/* Quantity Controls */}
                     <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
@@ -155,20 +188,27 @@ export default function CartPage() {
                         variant="outline"
                         size="icon"
                         onClick={() => handleUpdateQuantity(item.id, (item.quantity || 1) + 1)}
-                        disabled={isUpdating === item.id}
+                        disabled={
+                          isUpdating === item.id || 
+                          (item.quantity || 1) >= (productStocks[item.id] || 0)
+                        }
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                    
-                    {/* Price */}
+
+                    {productStocks[item.id] !== undefined && (
+                      <div className="text-xs text-gray-500">
+                        {productStocks[item.id]} em estoque
+                      </div>
+                    )}
+
                     <div className="text-right">
                       <p className="font-semibold">
                         R$ {(item.price * (item.quantity || 1)).toFixed(2)}
                       </p>
                     </div>
                     
-                    {/* Remove Button */}
                     <Button
                       variant="outline"
                       size="icon"
@@ -188,7 +228,6 @@ export default function CartPage() {
             ))}
           </div>
           
-          {/* Clear Cart Button */}
           <div className="mt-6">
             <Button
               variant="outline"
@@ -200,7 +239,6 @@ export default function CartPage() {
           </div>
         </div>
         
-        {/* Order Summary */}
         <div>
           <Card>
             <CardContent className="p-6">

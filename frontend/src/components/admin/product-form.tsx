@@ -443,19 +443,6 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
                 disabled={isSubmitting}
               />
             </div>
-            {/* <div className="space-y-2">
-              <Label htmlFor="sold">Units Sold</Label>
-              <Input
-                id="sold"
-                name="sold"
-                type="number"
-                min="0"
-                value={formData.sold}
-                onChange={handleChange}
-                placeholder="0"
-                disabled={isSubmitting}
-              />
-            </div> */}
           </div>
 
           <div className="space-y-2">
@@ -536,7 +523,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
             <Label htmlFor="featured">Produto em Destaque</Label>
           </div>
 
-          {/* Audio upload section */}
+          {/* Sessão de upload de áudio */}
           {formData.type !== "helmet" && (
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
@@ -575,7 +562,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
                     </Alert>
                   )}
                   
-                  {/* Show new sound file */}
+                  {/* Mostra o novo arquivo de som */}
                   {soundFile && (
                     <Alert className="mb-2">
                       <Volume2 className="h-4 w-4" />
