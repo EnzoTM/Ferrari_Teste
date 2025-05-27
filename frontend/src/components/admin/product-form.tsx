@@ -181,7 +181,7 @@ export default function ProductForm({ title, editMode = false, productId }: Prod
     // Adicionar novos arquivos ao estado
     setImageFiles((prev) => [...prev, ...newFiles])
 
-    // Create preview URLs for new files
+    // Cria preview URLs para novos arquivos
     const newPreviews = newFiles.map(file => URL.createObjectURL(file))
     setImagePreviews((prev) => [...prev, ...newPreviews])
 
