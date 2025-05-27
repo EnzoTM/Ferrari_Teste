@@ -28,30 +28,30 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
 
-  // Resolve params first
+  // Resolver os parametros primeiro
   useEffect(() => {
     params.then(setResolvedParams)
   }, [params])
 
-  // Helper function to get correct image URL
+  // Funçao auxiliar para obter a URL correta da imagem
   const getImageUrl = (imageName: string) => {
     if (!imageName) return "/placeholder.svg"
     
-    // If it's already a full URL, use it
+    // Se ja for uma URL completa, usa ela
     if (imageName.startsWith('http')) {
       return imageName
     }
     
-    // If it starts with /public or /api, construct the full URL
+    // Se começar com /public ou /api, construir a URL completa
     if (imageName.startsWith('/public') || imageName.startsWith('/api')) {
       return `${API_URL}${imageName}`
     }
     
-    // Otherwise, it's just a filename, construct the full URL
+    // Caso contrario, eh apenas um nome de arquivo - construir a URL completa
     return `${API_URL}/public/images/products/${imageName}`
   }
 
-  // Get the sound file URL
+  // Obter a URL do arquivo de audio
   const getSoundUrl = () => {
     if (product?.soundFile) {
       return `${API_URL}/public/sounds/${product.soundFile}`
@@ -120,8 +120,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     if (!product) return
 
     addItem({
-      id: product._id!, // This will be overwritten by backend cart item ID
-      productId: product._id!, // Product ID for stock checking
+      id: product._id!, // Este sera substituido pelo ID do item do carrinho no backend
+      productId: product._id!, // ID do produto para verificacao de estoque
       name: product.name,
       price: product.price,
       image: product.images?.[0] || '',
@@ -146,7 +146,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     }
   }
 
-  // Calculate available stock considering cart items
+  // Calcula o estoque disponivel considerando os itens do carrinho
   const quantityInCart = product ? getItemQuantityInCart(product._id!) : 0
   const availableStock = product ? (product.stock || 0) - quantityInCart : 0
 

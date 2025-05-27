@@ -18,11 +18,11 @@ export default function ProfilePage() {
   const router = useRouter()
   const { toast } = useToast()
 
-  // Load user data from API
+  // Carrega os dados do usuario da API
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Check if user is authenticated - redirecionamento imediato se não estiver
+        // Verifica se o usuario esta autenticado - redirecionamento imediato se não estiver
         if (!isAuthenticated()) {
           toast({
             title: "Acesso não autorizado",
@@ -33,7 +33,7 @@ export default function ProfilePage() {
           return
         }
         
-        // Get current user data using the token
+        // Pega os dados do usuario atual usando o token
         try {
           const response = await fetchWithAuth(API_ENDPOINTS.getCurrentUser)
           
@@ -73,7 +73,7 @@ export default function ProfilePage() {
   }, [router, toast])
 
   const handleLogout = () => {
-    // Use the logout function from the API to remove all authentication data
+    // Usa a funçao de logout da API para remover todos os dados de autenticaçao
     logout()
     
     toast({
@@ -81,7 +81,7 @@ export default function ProfilePage() {
       description: "Você saiu da sua conta com sucesso.",
     })
     
-    // Redirect to the login page
+    // Redireciona para a pagina de login
     router.push('/login')
   }
 

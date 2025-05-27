@@ -54,25 +54,25 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isProcessingOrder, setIsProcessingOrder] = useState(false)
 
-  // Calculate totals
+  // Calcula os valores totais
   const subtotal = cart.items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0)
-  const shipping = subtotal > 500 ? 0 : 50 // Free shipping over R$ 500
+  const shipping = subtotal > 500 ? 0 : 50 // Frete gratis acima de $500
   const total = subtotal + shipping
 
-  // Fetch user data
+  // Fetch dados do usuario
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         setIsLoading(true)
         
-        // Fetch address
+        // Fetch endereço
         const addressResponse = await fetch(API_ENDPOINTS.address, authFetchConfig())
         if (addressResponse.ok) {
           const addressData = await addressResponse.json()
           setAddress(addressData.address)
         }
         
-        // Fetch payment method
+        // Fetch metodo de pagamento
         const paymentResponse = await fetch(API_ENDPOINTS.getPaymentMethod, authFetchConfig())
         if (paymentResponse.ok) {
           const paymentData = await paymentResponse.json()
@@ -155,7 +155,7 @@ export default function CheckoutPage() {
 
       const data = await response.json()
       
-      // Clear cart locally
+      // Esvazia o carrinho localmente
       await clearCart()
       
       toast({
@@ -163,7 +163,7 @@ export default function CheckoutPage() {
         description: "Você será redirecionado para a página de confirmação.",
       })
       
-      // Redirect to order success page
+      // Redireciona para a pagina de pedido concluido com sucesso
       router.push(`/order?orderId=${data.order._id}&orderSuccessful=true`)
       
     } catch (error) {

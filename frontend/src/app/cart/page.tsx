@@ -22,7 +22,7 @@ export default function CartPage() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
   const [productStocks, setProductStocks] = useState<Record<string, number>>({})
 
-  // Load product stocks when cart changes
+  // Carregar o estoque do produto quando o carrinho muda
   useEffect(() => {
     const loadProductStocks = async () => {
       if (cart.items.length === 0) return
@@ -31,7 +31,7 @@ export default function CartPage() {
       
       for (const item of cart.items) {
         try {
-          // Use productId to fetch stock information
+          // Usa productId para fazer fetch nas infomaçoes do estoque
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/products/${item.productId}`)
           if (response.ok) {
             const data = await response.json()
@@ -54,7 +54,7 @@ export default function CartPage() {
   const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return
     
-    // Check stock limit
+    // Verifica o limite do estoque
     const productStock = productStocks[itemId] || 0
     if (newQuantity > productStock) {
       toast({
