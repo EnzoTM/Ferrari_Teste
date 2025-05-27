@@ -13,7 +13,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check if user is authenticated and has admin privileges
+    // Verifica se o usuario esta autenticado e se ele eh admin
     if (!isAuthenticated()) {
       toast({
         title: "Acesso não autorizado",
@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       return
     }
 
-    // Check if user is admin
+    // Verifica se o usuario eh admin
     if (!isAdmin()) {
       toast({
         title: "Acesso negado",
