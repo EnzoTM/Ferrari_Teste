@@ -55,8 +55,8 @@ module.exports = class UserController {
       cpf,
       password: passwordHash,
       admin,
-      cart: [], // Explicitly initialize as empty array to prevent schema issues
-      orders: [] // Explicitly initialize as empty array
+      cart: [], // Inicializado explicitamente como array vazio para evitar problemas de schema
+      orders: [] // Inicializado explicitamente como array vazio
     });
 
     try {
@@ -94,28 +94,28 @@ module.exports = class UserController {
     await createUserToken(user, req, res);
   }
 
-  // Verificar usuário atual
-  static async checkUser(req, res) {
+   // Verificar usuario atual
+   static async checkUser(req, res) {
     let currentUser = null;
 
     try {
       if (req.headers.authorization) {
         const token = getToken(req);
         
-        // Wrap the JWT verification in a try-catch to prevent uncaught errors
+        // Envolve a verificaçao do JWT em um try-catch para evitar erros nao tratados
         try {
           const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecreto');
           currentUser = await User.findById(decoded.id).select('-password');
         } catch (error) {
-          console.error("JWT verification error:", error.message);
-          // Token invalid but we don't want to throw an error, just return null user
+          console.error("Erro na verificação do JWT:", error.message);
+          // Token invalido
         }
       }
       
-      // Always send a 200 response, with either the user or null
+      // Sempre envia uma resposta 200, com o usuário ou null
       res.status(200).json(currentUser);
     } catch (error) {
-      console.error("Error in checkUser:", error);
+      console.error("Erro em checkUser:", error);
       res.status(500).json({ message: "Erro interno do servidor" });
     }
   }
@@ -137,15 +137,15 @@ module.exports = class UserController {
     }
   }
 
-  // Editar usuário
+  // Editar usuario
   static async editUser(req, res) {
     let userId = null;
 
-    // Check if user ID is in URL parameter
+    // Verificar se o ID do usuario esta no parametro da URL
     if (req.params.id) {
       userId = req.params.id;
     } else {
-      // Get user ID from token
+      // Pega o ID do usuario pelo token
       const token = getToken(req);
       const userFromToken = await getUserByToken(token);
       if (userFromToken) {
@@ -158,25 +158,25 @@ module.exports = class UserController {
     }
 
     try {
-      // Find the user by ID
+      // Procura o usuario pelo ID
       const user = await User.findById(userId);
 
       if (!user) {
         return res.status(404).json({ message: 'Usuário não encontrado' });
       }
 
-      // Check if the user from the token has permission to edit this user
+      // Verifica se o usuario do token tem permissao para editar este usuario
       const token = getToken(req);
       const userFromToken = await getUserByToken(token);
 
-      // Only allow editing if it's the same user or the user is an admin
+      // So permite editar o usuario se eh o mesmo usuario ou se o usuario eh um admin
       if (userId !== userFromToken._id.toString() && !userFromToken.admin) {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
       const { name, email, phone, cpf, password, confirmPassword, admin } = req.body;
 
-      // Validações e atualizações
+      // Validações e atualizaçoes
       if (name) {
         user.name = name;
       }
@@ -235,7 +235,7 @@ module.exports = class UserController {
     }
   }
 
-  // Change password
+  // Alterar senha
   static async changePassword(req, res) {
     const { id } = req.params;
     const { currentPassword, newPassword } = req.body;
@@ -249,28 +249,28 @@ module.exports = class UserController {
     }
 
     try {
-      // Verificar se id é válido
+      // Verificar se id e valido
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(422).json({ message: 'ID inválido' });
       }
 
-      // Find user
+      // Procurar usuario
       const user = await User.findById(id);
       if (!user) {
         return res.status(404).json({ message: 'Usuário não encontrado' });
       }
 
-      // Check if current password is correct
+      // Verifica se a senha atual eh a correta
       const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
       if (!isPasswordValid) {
         return res.status(422).json({ message: 'Senha atual incorreta' });
       }
 
-      // Hash new password
+      // Aplicar hash na nova senha
       const salt = await bcrypt.genSalt(12);
       const passwordHash = await bcrypt.hash(newPassword, salt);
 
-      // Update password
+      // Atualiza a senha
       user.password = passwordHash;
       await user.save();
 
@@ -281,7 +281,7 @@ module.exports = class UserController {
     }
   }
 
-  // Get address
+  // Pegar o endereço
   static async getAddress(req, res) {
     try {
       const token = getToken(req);
@@ -297,7 +297,7 @@ module.exports = class UserController {
     }
   }
 
-  // Add or update address
+  // Adicionar ou atualizar endereço
   static async updateAddress(req, res) {
     try {
       const token = getToken(req);
@@ -309,7 +309,7 @@ module.exports = class UserController {
 
       const { street, number, complement, neighborhood, city, state, zipCode } = req.body;
 
-      // Validações
+      // Validaçoes
       if (!street) {
         return res.status(422).json({ message: 'A rua é obrigatória' });
       }
@@ -329,7 +329,7 @@ module.exports = class UserController {
         return res.status(422).json({ message: 'O CEP é obrigatório' });
       }
 
-      // Create or update address
+      // Criar ou atualizar endereço
       user.address = {
         street,
         number,
@@ -351,7 +351,7 @@ module.exports = class UserController {
     }
   }
 
-  // Get payment method
+  // Pegar o metodo de pagamento
   static async getPaymentMethod(req, res) {
     try {
       const token = getToken(req);
@@ -367,7 +367,7 @@ module.exports = class UserController {
     }
   }
 
-  // Add or update payment method
+  // Adicionar ou atualizar metodo de pagamento
   static async updatePaymentMethod(req, res) {
     try {
       const token = getToken(req);
@@ -379,7 +379,7 @@ module.exports = class UserController {
 
       const { type, cardNumber, cardHolderName, expirationDate, cvv } = req.body;
 
-      // Validations
+      // Validaçoes
       if (!type) {
         return res.status(422).json({ message: 'O tipo de cartão é obrigatório' });
       }
@@ -404,7 +404,7 @@ module.exports = class UserController {
         return res.status(422).json({ message: 'O código de segurança é obrigatório' });
       }
 
-      // Create or update payment method
+      // Criar ou atualizar forma de pagamento
       user.paymentMethod = {
         type,
         cardNumber,
@@ -415,7 +415,7 @@ module.exports = class UserController {
 
       await user.save();
 
-      // Return payment method without CVV for security
+      // Retorna o metodo de pagamento sem o CVV para garantir segurança
       const securePaymentMethod = {
         ...user.paymentMethod.toObject(),
         cvv: undefined
@@ -430,7 +430,7 @@ module.exports = class UserController {
     }
   }
 
-  // Add to cart
+  // Adicionar ao carrinho
   static async addToCart(req, res) {
     try {
       const token = getToken(req);
@@ -442,35 +442,35 @@ module.exports = class UserController {
 
       const { productId, quantity = 1, color, size } = req.body;
 
-      // Validate product
+      // Valida o produto
       const product = await Product.findById(productId);
       
       if (!product) {
         return res.status(404).json({ message: 'Produto não encontrado' });
       }
 
-      // Create cart item
+      // Cria um item no carrinho
       const cartItem = {
         product: product._id,
         quantity: quantity,
       };
 
-      // Check if same product with same attributes already exists in cart
+      // Verifica se o mesmo produto com os mesmos atributos ja esta no carrinho
       const existingItemIndex = user.cart.findIndex(item => 
         item.product.toString() === productId
       );
 
       if (existingItemIndex !== -1) {
-        // Update quantity instead of adding new item
+        // Atualiza a quantidade em vez de adicionar um novo item, caso o item ja estava no carrinho
         user.cart[existingItemIndex].quantity += quantity;
       } else {
-        // Add new item to cart
+        // Adiciona o novo item ao carrinho
         user.cart.push(cartItem);
       }
 
       await user.save();
 
-      // Populate product details for response
+      // Preencher os detalhes do produto no carrinho para enviar na resposta
       await user.populate('cart.product');
 
       res.status(200).json({
@@ -482,7 +482,7 @@ module.exports = class UserController {
     }
   }
 
-  // Update cart item
+  // Atualizar item do carrinho
   static async updateCartItem(req, res) {
     try {
       const token = getToken(req);
@@ -494,16 +494,16 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      // Find cart item
+      // Procura o item no carrinho
       const itemIndex = user.cart.findIndex(item => item._id.toString() === itemId);
 
       if (itemIndex === -1) {
         return res.status(404).json({ message: 'Item não encontrado no carrinho' });
       }
 
-      // Update quantity
+      // Atualiza a quantidade
       if (quantity <= 0) {
-        // Remove item if quantity is 0 or less
+        // Remove o item se a quantidade eh 0 ou menos
         user.cart.splice(itemIndex, 1);
       } else {
         user.cart[itemIndex].quantity = quantity;
@@ -511,7 +511,7 @@ module.exports = class UserController {
 
       await user.save();
       
-      // Populate product details for response
+      // Preencher os detalhes do produto no carrinho para enviar na resposta
       await user.populate('cart.product');
 
       res.status(200).json({
@@ -523,7 +523,7 @@ module.exports = class UserController {
     }
   }
 
-  // Remove from cart
+  // Remover do carrinho
   static async removeFromCart(req, res) {
     try {
       const token = getToken(req);
@@ -534,9 +534,9 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      // Find cart item
+      // Encontrar o item no carrinho
       const itemIndex = user.cart.findIndex(item => item._id.toString() === itemId);
-
+      
       if (itemIndex === -1) {
         return res.status(404).json({ message: 'Item não encontrado no carrinho' });
       }
@@ -554,7 +554,7 @@ module.exports = class UserController {
     }
   }
 
-  // Get cart
+  // Pegar carrinho
   static async getCart(req, res) {
     try {
       const token = getToken(req);
@@ -564,13 +564,12 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      // Populate product details for frontend display
       await user.populate('cart.product');
       
-      // Filter out items where product is null (deleted products) and clean up the cart
+      // Filtrar itens onde o produto é nulo (produtos deletados) e limpar o carrinho
       const validCartItems = user.cart.filter(item => item.product !== null);
       
-      // If we found invalid items, update the user's cart to remove them
+      // Se encontramos itens invalidos, atualizar o carrinho do usuario para remover eles
       if (validCartItems.length !== user.cart.length) {
         user.cart = validCartItems;
         await user.save();
@@ -582,7 +581,7 @@ module.exports = class UserController {
     }
   }
 
-  // Clear cart
+  // Esvaziar carrinho
   static async clearCart(req, res) {
     try {
       const token = getToken(req);
@@ -604,7 +603,7 @@ module.exports = class UserController {
     }
   }
 
-  // Create an order
+  // Criar um pedido
   static async createOrder(req, res) {
     try {
       const token = getToken(req);
@@ -614,34 +613,34 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      // Validate if user has items in cart
+      // Validar se o usuario tem itens no carrinho
       if (!user.cart || user.cart.length === 0) {
         return res.status(422).json({ message: 'Carrinho vazio. Adicione produtos antes de finalizar o pedido.' });
       }
 
-      // Validate address
+      // Validar endereço
       if (!user.address) {
         return res.status(422).json({ message: 'Você precisa cadastrar um endereço antes de finalizar o pedido.' });
       }
 
-      // Validate payment method
+      // Validar metodo de pagamento
       if (!user.paymentMethod) {
         return res.status(422).json({ message: 'Você precisa cadastrar um método de pagamento antes de finalizar o pedido.' });
       }
 
-      // Populate product details for order creation
+      // Preencher os detalhes dos produtos para criação do pedido
       await user.populate('cart.product');
 
-      // Create order items array matching OrderItemSchema structure
+      // Criar array de itens do pedido seguindo a estrutura do OrderItemSchema 
       const orderItems = user.cart.map(item => ({
         product: item.product._id,
         quantity: item.quantity
       }));
 
-      // Calculate order total
+      // Calcular o preço total do pedido
       const totalPrice = user.cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
-      // Create order matching OrderSchema structure
+      // Criar pedido seguindo a estrutura do OrderSchema
       const newOrder = {
         orderItem: orderItems,
         totalPrice: totalPrice,
@@ -665,18 +664,18 @@ module.exports = class UserController {
 
       user.orders.push(newOrder);
 
-      // Update product stock
+      // Atualizar o estoque do produto
       for (const item of user.cart) {
         const product = await Product.findById(item.product._id);
         if (product) {
-          // Update stock count
+          // Atualizar a contagem do estoque
           product.stock = Math.max(0, product.stock - item.quantity);
           product.sold += item.quantity;
           await product.save();
         }
       }
 
-      // Clear cart
+      // Esvaziar carrinho
       user.cart = [];
       await user.save();
 
@@ -690,7 +689,7 @@ module.exports = class UserController {
     }
   }
 
-  // Get all orders for the user
+  // Pega todos os pedidos do usuario
   static async getOrders(req, res) {
     try {
       const token = getToken(req);
@@ -700,13 +699,13 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      // Populate product details for each order item in all orders
+      // Carrega detalhes dos produtos para cada item em todos os pedidos
       const populatedOrders = [];
       
       for (const order of user.orders) {
         const populatedOrder = { ...order.toObject() };
         
-        // Include all order items, marking deleted products as unavailable
+        // Incluir todos os itens do pedido, marcando produtos excluídos como indisponíveis
         const allOrderItems = [];
         
         for (let i = 0; i < populatedOrder.orderItem.length; i++) {
@@ -721,7 +720,7 @@ module.exports = class UserController {
               }
             });
           } else {
-            // Product was deleted, show as unavailable
+            // Produto foi removido, mostrar como indisponivel
             allOrderItems.push({
               ...populatedOrder.orderItem[i],
               productDetails: {
@@ -734,7 +733,7 @@ module.exports = class UserController {
           }
         }
         
-        // Include the order even if some products are unavailable
+        // Incluir o pedido mesmo que alguns produtos estejam indisponiveis
         populatedOrder.orderItem = allOrderItems;
         populatedOrders.push(populatedOrder);
       }
@@ -745,7 +744,7 @@ module.exports = class UserController {
     }
   }
 
-  // Get order details
+  // Pega os detalhes do pedido
   static async getOrderById(req, res) {
     try {
       const token = getToken(req);
@@ -756,14 +755,14 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      // Find order
+      // Busca o pedido
       const order = user.orders.find(order => order._id.toString() === orderId);
 
       if (!order) {
         return res.status(404).json({ message: 'Pedido não encontrado' });
       }
 
-      // Populate product details for each order item, including unavailable products
+      // Carregar detalhes dos produtos para cada item do pedido, incluindo produtos indisponiveis
       const populatedOrder = { ...order.toObject() };
       const allOrderItems = [];
       
@@ -779,7 +778,7 @@ module.exports = class UserController {
             }
           });
         } else {
-          // Product was deleted, show as unavailable
+          // Se o produto foi deletado, mostra como indisponivel
           allOrderItems.push({
             ...populatedOrder.orderItem[i],
             productDetails: {
@@ -828,7 +827,7 @@ module.exports = class UserController {
         return res.status(401).json({ message: 'Acesso negado' });
       }
 
-      // Verificar se id é válido
+      // Verificar se id e valido
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(422).json({ message: 'ID inválido' });
       }

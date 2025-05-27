@@ -221,7 +221,7 @@ module.exports = class ProductController {
         stock
       } = req.body;
 
-      // Check if type is changing to helmet and product has sound file
+      // Checa se o tipo esta mudando para Capacetes e se o produto tem arquivo de som
       const isChangingToHelmet = type === 'helmet' && product.type !== 'helmet' && product.soundFile;
 
       // Atualizar campos se fornecidos
@@ -241,7 +241,7 @@ module.exports = class ProductController {
         }
         product.type = type;
 
-        // If changing to helmet, automatically remove sound file
+        // Se esta mudando para Capacetes, automaticamente remove o arquivo de som
         if (type === 'helmet' && product.soundFile) {
           try {
             const oldSoundPath = path.join(__dirname, '../../public/sounds', product.soundFile);
@@ -266,7 +266,8 @@ module.exports = class ProductController {
             if (file.fieldname === 'images') {
               product.images.push(file.filename);
             } else if (file.fieldname === 'soundFile' && product.type !== 'helmet') {
-              // Only allow sound files for non-helmet products
+              // So permite audio para produtos que nao sao capacetes
+              // (capacetes nao podem ter som de motor)
               // Remover arquivo de áudio anterior se existir
               if (product.soundFile) {
                 try {
@@ -289,7 +290,7 @@ module.exports = class ProductController {
             });
           }
           if (req.files.soundFile && req.files.soundFile[0] && product.type !== 'helmet') {
-            // Only allow sound files for non-helmet products
+            // So permite audio para produtos que nao sao capacetes
             // Remover arquivo de áudio anterior se existir
             if (product.soundFile) {
               try {
@@ -308,7 +309,7 @@ module.exports = class ProductController {
 
       await product.save();
 
-      // Add message about sound file deletion if it was automatically removed
+      // Adiciona uma mensage sobre a remoção do arquivo de audio se ele foi automaticamente removido
       let message = 'Produto atualizado com sucesso';
       if (isChangingToHelmet) {
         message += '. Arquivo de áudio removido automaticamente (capacetes não possuem som)';
@@ -363,7 +364,7 @@ module.exports = class ProductController {
       // Salvar produto
       await product.save();
 
-      // Attempt to remove the file from the filesystem
+      // Tenta remover o arquivo do filesystem
       try {
         const imagePath = path.join(__dirname, '../../public/images/products', filename);
         if (fs.existsSync(imagePath)) {
@@ -371,7 +372,7 @@ module.exports = class ProductController {
         }
       } catch (error) {
         console.error('Error removing image file:', error);
-        // Continue execution even if file removal fails
+        // Continua a executar mesmo que a remoçao do arquivo falhe
       }
 
       res.status(200).json({ message: 'Imagem removida com sucesso', product });
@@ -450,17 +451,17 @@ module.exports = class ProductController {
         return res.status(404).json({ message: 'Produto não encontrado' });
       }
 
-      // Remove this product from all users' carts before deleting
+      // Remove esse produto para todos os carrinhos dos usuários antes de deletar
       const User = require('../models/User');
       await User.updateMany(
         { 'cart.product': id },
         { $pull: { cart: { product: id } } }
       );
 
-      // Delete the product
+      // Deleta o produto
       await Product.findByIdAndDelete(id);
 
-      // Attempt to remove the product images from the filesystem
+      // Tenta remover as imagens do produto do sistema
       try {
         for (const filename of product.images) {
           const imagePath = path.join(__dirname, '../../public/images/products', filename);
@@ -470,10 +471,10 @@ module.exports = class ProductController {
         }
       } catch (error) {
         console.error('Error removing image files:', error);
-        // Continue execution even if file removal fails
+        // Continua a executar mesmo que a remoçao das imagens falhe
       }
 
-      // Attempt to remove the sound file from the filesystem
+      // Tenta remover o arquivo de audio do sistema
       if (product.soundFile) {
         try {
           const soundPath = path.join(__dirname, '../../public/sounds', product.soundFile);
