@@ -46,11 +46,11 @@ const UserSchema = new Schema(
     },
     cart: {
       type: [CartItemSchema],
-      default: [] // Ensure this is always initialized as an empty array
+      default: [] // Garante que ele sempre eh inicializado como um array vazio
     },
     orders: {
       type: [OrderSchema],
-      default: [] // Ensure this is always initialized as an empty array
+      default: [] // Garante que ele sempre eh inicializado como um array vazio
     }
   },
   { timestamps: true }
